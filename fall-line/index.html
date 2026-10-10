@@ -251,7 +251,7 @@ table.tests { border-collapse: collapse; width: 100%; min-width: 680px; }
   <header class="mast">
     <div class="brand">
       <h1>Fall <span>Line</span></h1>
-      <p>Eight weeks to stronger, more mobile hips, knees and ankles, a stiffer Achilles for spring, and legs that last all day on the mountain. Built to carry into football season.</p>
+      <p>Eight weeks that fit around the end of football season, then build stronger, more mobile hips, knees and ankles, a stiffer Achilles and legs that last all day on the mountain.</p>
     </div>
     <div class="count" id="count"></div>
   </header>
@@ -291,6 +291,7 @@ const EX = {
   "slrdl": { n: "Single-Leg RDL", j: "hip", cue: "Hinge at the hip on one leg, back leg long, hips square to the floor. Soft bend in the standing knee.", why: "Hamstring and glute strength with balance. Strong hamstrings protect the ACL when skiing and resist strains when sprinting." },
   "goblet": { n: "Goblet Squat", j: "knee", cue: "Dumbbell at your chest, sit between the heels, knees track over toes. Tempo 3-1-1.", why: "Clean squat mechanics under load and quad strength for long runs." },
   "spanish": { n: "Spanish Squat Hold", j: "knee", cue: "Heavy band behind both knees anchored to a post. Sit back until shins are vertical and thighs near parallel. Hold.", why: "High quad load with little knee shear. Isometrics settle patellar tendon pain and build tendon stiffness." },
+  "squat": { n: "Back Squat", j: "knee", cue: "Bar on the upper back, brace, sit between the heels to at least parallel, drive up. Stop 2–3 reps short of failure.", why: "Your main knee and hip strength lift. Deep, loaded knee bend is exactly what long ski runs ask of your quads." },
   "trapbar": { n: "Trap-Bar Deadlift", j: "knee", cue: "Hips back, chest up, push the floor away. Stop 2–3 reps short of failure.", why: "Heavy whole-leg strength. Maximum strength sets the ceiling for power." },
   "split": { n: "Rear-Foot-Elevated Split Squat", j: "knee", cue: "Back foot on a bench. Drop the back knee straight down; the front knee may travel past the toes.", why: "Single-leg strength through full knee range. Moguls and crud demand deep knee bend under load." },
   "nordic": { n: "Nordic Hamstring Curl", j: "knee", cue: "Kneel with heels anchored. Lower your body forward as slowly as you can, catch with your hands, push back up.", why: "Eccentric hamstring strength. Cuts hamstring strain rates in football and supports the ACL." },
@@ -322,15 +323,17 @@ const JOINTS = { hip: "Hips", knee: "Knees", ankle: "Ankles & Achilles", power: 
 
 /* ---------- Program ---------- */
 const PHASES = {
-  1: { n: "Foundation", weeks: "Weeks 1–3", color: "var(--p1)", goal: "Restore range and build tendon tolerance with isometrics and slow tempo work.", notes: ["Leave 2–3 reps in the tank on every set", "Isometric holds: push hard, breathe steadily", "Pogos stay low and quick, no max jumps yet"] },
-  2: { n: "Strength", weeks: "Weeks 4–6", color: "var(--p2)", goal: "Heavy slow loading for strength and Achilles stiffness. Introduce real plyometrics.", notes: ["Add load when the top of the rep range feels easy", "Nordics: slow the lowering before adding reps", "Stick every landing for 2 s"] },
+  1: { n: "In-Season", weeks: "Weeks 1–3", color: "var(--p1)", goal: "Keep your strength and stiffen the Achilles without taking anything away from football. Two short, heavy lifts after practice.", notes: ["Low volume, high intensity: few sets, top-quality reps", "Never lift the day before a game. Move Lift B earlier if needed", "Practice is your sprint and jump work, so no extra plyos"] },
+  2: { n: "Strength", weeks: "Weeks 4–6", color: "var(--p2)", goal: "Football is done. Full six-day weeks: heavy lifting, heavy slow calf work and real plyometrics.", notes: ["Week 4 adds a lot of new volume, so keep RPE honest", "Nordics: slow the lowering before adding reps", "Stick every landing for 2 s"] },
   3: { n: "Power", weeks: "Weeks 7–8", color: "var(--p3)", goal: "Convert strength to explosiveness and ski-specific endurance, then taper.", notes: ["Every rep fast, stop if contacts get slow", "Week 8 is a taper: about half the volume", "Arrive at the mountain fresh, not sore"] }
 };
 const phaseOf = w => (w <= 3 ? 1 : w <= 6 ? 2 : 3);
 const wIn = w => (w <= 3 ? w - 1 : w <= 6 ? w - 4 : w - 7);
-const LOAD = [3, 4, 5, 6, 7, 8, 9, 5];
+const LOAD = [4, 4, 5, 7, 8, 8, 9, 5];
 
 const TYPES = ["strA", "mob", "elastic", "balance", "strB", "engine", "rest"];
+const IN_SEASON = ["liftA", "pmob", "ptendon", "liftB", "game", "recovery", "rest"];
+const typeFor = (w, d) => (phaseOf(w) === 1 ? IN_SEASON : TYPES)[d];
 const META = {
   strA: { t: "Strength A", s: "Strength A", min: 50, eff: ["blue", "black", "black"], focus: "Bilateral strength and heavy tendon loading for the knees and Achilles." },
   mob: { t: "Mobility Flow", s: "Mobility", min: 20, eff: ["green", "green", "green"], focus: "Full-range hip, knee and ankle mobility. Move slowly and breathe into the end range." },
@@ -338,6 +341,12 @@ const META = {
   balance: { t: "Balance & Reset", s: "Balance", min: 20, eff: ["green", "green", "green"], focus: "Ankle proprioception, knee control and trunk stability at low intensity." },
   strB: { t: "Strength B", s: "Strength B", min: 45, eff: ["blue", "black", "blue"], focus: "Single-leg and lateral strength for edging, cutting and landing." },
   engine: { t: "Ski Engine", s: "Engine", min: 40, eff: ["blue", "black", "black"], focus: "Leg endurance and the 1–3 minute energy system that a ski run demands." },
+  liftA: { t: "Practice + Lift A", s: "Lift A", min: 35, eff: ["black"], focus: "Short and heavy, straight after practice while you're warm. A few hard sets, then leave. Practice is your warm-up." },
+  pmob: { t: "Practice + Mobility", s: "Practice", min: 12, eff: ["blue"], focus: "Football practice, then 12 minutes of mobility before you leave." },
+  ptendon: { t: "Practice + Tendon", s: "Practice", min: 15, eff: ["blue"], focus: "Football practice, then tendon holds and balance. Nothing here should leave you sore." },
+  liftB: { t: "Practice + Lift B", s: "Lift B", min: 30, eff: ["black"], focus: "Single-leg and hamstring strength after practice. Skip it if a game is tomorrow." },
+  game: { t: "Practice / Game", s: "Practice", min: 10, eff: ["black"], focus: "Football does the work today. Just a short cool-down to look after your hips and ankles." },
+  recovery: { t: "Recovery", s: "Recovery", min: 25, eff: ["green"], focus: "Easy movement to flush out the week. No lifting." },
   rest: { t: "Rest Day", s: "Rest", min: 30, eff: ["green", "green", "green"], focus: "Recovery is when tendons adapt. Walk, stretch lightly, sleep well." }
 };
 const EFF_LABEL = { green: "Easy", blue: "Moderate", black: "Hard" };
@@ -346,14 +355,11 @@ const PRIMER = { name: "Primer", note: "about 8 min", items: [["ankle-cars", "5 
 
 const TPL = {
   strA: {
-    1: [{ name: "Main lifts", items: [["goblet", ["3 × 8 · 3-1-1", "3 × 10 · 3-1-1", "4 × 8 · 3-1-1"]], ["spanish", ["5 × 30 s", "5 × 45 s", "5 × 45 s, firmer band"]], ["slrdl", ["3 × 8 / side", "3 × 10 / side", "3 × 10 / side, +load"]]] },
-        { name: "Tendon", items: [["calf-iso", ["5 × 30 s", "5 × 45 s", "5 × 45 s, +load"]], ["tibraise", "2 × 15"]] },
-        { name: "Groin", items: [["copenhagen", ["3 × 15 s / side, knee", "3 × 20 s / side, knee", "3 × 20 s / side, foot"]]] }],
-    2: [{ name: "Main lifts", items: [["trapbar", ["4 × 5 · RPE 7", "5 × 5 · RPE 7", "5 × 4 · RPE 8"]], ["split", ["3 × 8 / side · 3-0-1", "3 × 8 / side, +load", "4 × 6 / side, heavier"]], ["nordic", ["3 × 4", "3 × 5", "3 × 6"]]] },
-        { name: "Tendon", items: [["calf-raise-heavy", ["4 × 8 · 3-0-3", "4 × 8 · 3-0-3, +load", "4 × 6 · 3-0-3, +load"]], ["spanish", "3 × 45 s"]] },
+    2: [{ name: "Main lifts", items: [["squat", ["5 × 5 · RPE 7", "5 × 4 · RPE 8", "5 × 3 · RPE 8–9"]], ["split", ["3 × 8 / side, heavy DBs", "4 × 6 / side", "4 × 5 / side, heavier"]], ["nordic", ["3 × 5", "3 × 6", "3 × 6, slower"]]] },
+        { name: "Tendon", items: [["calf-raise-heavy", ["4 × 8 · 3-0-3", "4 × 6 · 3-0-3, +load", "4 × 6 · 3-0-3, +load"]], ["spanish", "3 × 45 s"]] },
         { name: "Groin", items: [["copenhagen", ["3 × 20 s / side, foot", "3 × 25 s / side", "3 × 30 s / side"]]] }],
-    3: [{ name: "Power", items: [["broad", ["4 × 3, stick each", "3 × 3"]]] },
-        { name: "Main lifts", items: [["trapbar", ["4 × 3 · fast up, RPE 7", "3 × 3 · RPE 6"]], ["split", ["3 × 5 / side", "2 × 5 / side"]], ["nordic", ["2 × 6", "2 × 4"]]] },
+    3: [{ name: "Contrast pairs", note: "1 squat set, rest 30 s, then the jumps", items: [["squat", ["4 × 3 · RPE 7, fast up", "3 × 2 · RPE 6"]], ["broad", ["4 × 3, stick each", "3 × 3"]]] },
+        { name: "Main lifts", items: [["split", ["3 × 5 / side", "2 × 5 / side"]], ["nordic", ["2 × 6", "2 × 4"]]] },
         { name: "Tendon & groin", items: [["calf-raise-heavy", ["3 × 8 · 3-0-3", "2 × 8"]], ["copenhagen", ["2 × 30 s / side", "2 × 20 s / side"]]] }]
   },
   mob: {
@@ -361,9 +367,6 @@ const TPL = {
     2: [{ name: "Flow", note: "move straight through", items: [["worlds", "5 / side"], ["couch", "2 × 60 s / side"], ["cossack", "2 × 8 / side, hold 5 kg"], ["adductor-rock", "10 / side"], ["pigeon", "60 s / side"], ["deep-squat", "3 × 60 s"], ["kneewall", "2 × 10 / side, banded"]] }]
   },
   elastic: {
-    1: [{ name: "Tendon", items: [["ecc-calf", ["3 × 10 / side · 3 s down", "3 × 12 / side", "3 × 15 / side"]], ["soleus", ["3 × 12", "3 × 15", "3 × 15, +load"]]] },
-        { name: "Elastic", items: [["pogo", ["3 × 15, low & quick", "3 × 20", "4 × 20"]], ["latline", ["2 × 15 s", "3 × 15 s", "3 × 20 s"]]] },
-        { name: "Control", items: [["sl-balance", ["3 × 30 s / side, eyes open", "3 × 30 s / side, eyes closed", "3 × 30 s / side, on cushion"]], ["stepdown", ["3 × 8 / side", "3 × 10 / side", "3 × 10 / side"]]] }],
     2: [{ name: "Elastic", items: [["pogo", "3 × 20, higher"], ["sl-pogo", ["3 × 8 / side", "3 × 10 / side", "4 × 10 / side"]], ["latline", "3 × 20 s"], ["skater", ["3 × 4 / side, stick 2 s", "3 × 5 / side, stick", "3 × 6 / side, stick"]]] },
         { name: "Tendon", items: [["ecc-calf", ["3 × 10 / side, +5 kg", "3 × 10 / side, +10 kg", "3 × 8 / side, +15 kg"]]] },
         { name: "Control", items: [["sl-balance", "3 × 30 s / side, eyes closed on cushion"]] }],
@@ -375,16 +378,12 @@ const TPL = {
         { name: "Reset", items: [["hip-cars", "3 each way / side"], ["couch", "60 s / side"], ["kneewall", "10 / side"]] }]
   },
   strB: {
-    1: [{ name: "Main lifts", items: [["split", ["3 × 8 / side, bodyweight", "3 × 10 / side", "3 × 8 / side, +dumbbells"]], ["lateral-lunge", ["3 × 6 / side", "3 × 8 / side", "3 × 8 / side, +load"]], ["petersen", ["3 × 12 / side", "3 × 15 / side", "3 × 15 / side, +load"]]] },
-        { name: "Accessories", items: [["bandwalk", "3 × 12 steps each way"], ["sideplank", ["3 × 20 s / side", "3 × 30 s / side", "3 × 30 s / side, leg lift"]], ["tibraise", ["2 × 15", "2 × 20", "2 × 20, +load"]]] }],
-    2: [{ name: "Main lifts", items: [["lateral-lunge", ["4 × 6 / side, loaded", "4 × 6 / side, +load", "4 × 5 / side, heavier"]], ["slrdl", ["3 × 8 / side, heavy", "3 × 8 / side, +load", "3 × 6 / side, heavier"]], ["stepdown", ["3 × 10 / side, hold a plate", "3 × 10 / side", "3 × 12 / side"]], ["petersen", "3 × 12 / side"]] },
+    2: [{ name: "Main lifts", items: [["trapbar", ["4 × 5 · RPE 7", "4 × 4 · RPE 8", "5 × 3 · RPE 8"]], ["lateral-lunge", ["3 × 6 / side, loaded", "3 × 6 / side, +load", "3 × 5 / side, heavier"]], ["slrdl", ["3 × 6 / side, heavy", "3 × 6 / side, +load", "3 × 5 / side, heavier"]], ["stepdown", ["3 × 10 / side, hold a plate", "3 × 10 / side", "3 × 12 / side"]], ["petersen", "3 × 12 / side"]] },
         { name: "Trunk", items: [["pallof", "3 × 10 / side"], ["sideplank", "3 × 30 s / side, leg lift"]] }],
-    3: [{ name: "Main lifts", items: [["lateral-lunge", ["3 × 5 / side, fast up", "2 × 5 / side"]], ["slrdl", ["3 × 6 / side", "2 × 6 / side"]], ["stepdown", "2 × 10 / side"]] },
+    3: [{ name: "Main lifts", items: [["trapbar", ["4 × 3 · fast up, RPE 7", "3 × 2 · RPE 6"]], ["lateral-lunge", ["3 × 5 / side, fast up", "2 × 5 / side"]], ["slrdl", ["3 × 6 / side", "2 × 6 / side"]], ["stepdown", "2 × 10 / side"]] },
         { name: "Trunk", items: [["pallof", "3 × 10 / side"], ["sideplank", ["3 × 30 s / side", "2 × 30 s / side"]]] }]
   },
   engine: {
-    1: [{ name: "Aerobic base", items: [["z2", ["25 min", "30 min", "35 min"]]] },
-        { name: "Ski legs", items: [["wallsit", ["4 × 45 s", "4 × 60 s", "4 × 75 s"]], ["deadbug", "2 × 8 / side"]] }],
     2: [{ name: "Intervals", items: [["bike-int", ["6 × 60 s hard / 60 s easy", "6 × 90 s / 90 s", "6 × 2 min / 2 min"]]] },
         { name: "Ski legs", items: [["wallsit", ["3 × 90 s", "3 × 2 min, shift side to side", "3 × 2 min, shift side to side"]], ["stepdown", "2 × 12 / side, slow"]] },
         { name: "Cool-down", items: [["z2", "10 min"]] }],
@@ -395,6 +394,15 @@ const TPL = {
     1: [{ name: "Recovery", items: [["walk", "30–45 min"], ["couch", "optional · 60 s / side"], ["9090", "optional · 8 switches"]] }]
   }
 };
+
+TPL.liftA = { 1: [{ name: "Main lifts", note: "right after practice", items: [["squat", ["3 × 3 · RPE 7", "4 × 3 · RPE 7", "4 × 2 · RPE 8"]], ["split", ["2 × 6 / side", "2 × 6 / side, +load", "3 × 5 / side"]], ["nordic", ["2 × 4", "2 × 5", "3 × 5"]]] },
+    { name: "Tendon & groin", items: [["calf-iso", ["4 × 30 s, heavy", "4 × 45 s, heavy", "5 × 45 s, heavier"]], ["copenhagen", ["2 × 20 s / side", "2 × 25 s / side", "2 × 30 s / side"]]] }] };
+TPL.liftB = { 1: [{ name: "Main lifts", note: "right after practice", items: [["slrdl", ["3 × 6 / side", "3 × 6 / side, +load", "3 × 5 / side"]], ["lateral-lunge", ["2 × 6 / side", "2 × 6 / side, +load", "3 × 5 / side"]], ["petersen", "2 × 12 / side"]] },
+    { name: "Trunk", items: [["pallof", "2 × 10 / side"], ["sideplank", "2 × 30 s / side, leg lift"]] }] };
+TPL.pmob = { 1: [{ name: "After practice", note: "12 min", items: [["couch", "60 s / side"], ["9090", "8 switches"], ["adductor-rock", "10 / side"], ["kneewall", "10 / side"], ["pigeon", "45 s / side"]] }] };
+TPL.ptendon = { 1: [{ name: "After practice", note: "15 min, low fatigue", items: [["spanish", "4 × 45 s"], ["soleus", ["3 × 10, heavy", "3 × 10, +load", "3 × 8, heavier"]], ["tibraise", "2 × 15"], ["sl-balance", "2 × 30 s / side, eyes closed"]] }] };
+TPL.game = { 1: [{ name: "After practice or the game", items: [["deep-squat", "2 × 45 s"], ["couch", "60 s / side"], ["walk", "optional · 10 min cool-down"]] }] };
+TPL.recovery = { 1: [{ name: "Recovery", items: [["walk", "20–30 min"], ["worlds", "5 / side"], ["9090", "8 switches"], ["kneewall", "10 / side"]] }] };
 
 const MAINT = {
   A: { t: "Maintenance A · Strength", items: [["trapbar", "3 × 4 · RPE 7"], ["split", "2 × 6 / side"], ["nordic", "2 × 5"], ["calf-raise-heavy", "3 × 8 · 3-0-3"], ["copenhagen", "2 × 20 s / side"]] },
@@ -414,12 +422,12 @@ const TCOLS = [["base", "Week 0"], ["mid", "End wk 4"], ["final", "End wk 8"]];
 const pick = (v, w) => (Array.isArray(v) ? v[Math.min(wIn(w), v.length - 1)] : v);
 
 function session(w, d) {
-  const type = TYPES[d], p = phaseOf(w), meta = META[type];
+  const type = typeFor(w, d), p = phaseOf(w), meta = META[type];
   const tpl = TPL[type][p] || TPL[type][2] || TPL[type][1];
   const blocks = [];
   if (["strA", "elastic", "strB", "engine"].includes(type)) blocks.push(PRIMER);
   tpl.forEach(b => blocks.push(b));
-  let eff = meta.eff[p - 1];
+  let eff = meta.eff[Math.min(p, meta.eff.length) - 1];
   const taper = w === 8;
   if (taper && eff === "black") eff = "blue";
   return {
@@ -535,8 +543,8 @@ function renderSession() {
   const pp = pos();
   let eyebrow = fmt(dt, { weekday: "long", month: "long", day: "numeric" });
   if (isToday(w, d)) eyebrow = "Today · " + eyebrow;
-  const days = TYPES.map((t, i) => {
-    const di = dateOf(w, i);
+  const days = [0, 1, 2, 3, 4, 5, 6].map(i => {
+    const t = typeFor(w, i), di = dateOf(w, i);
     return `<button class="day${isToday(w, i) ? " is-today" : ""}${S.done[k(w, i)] ? " is-done" : ""}" data-day="${i}" aria-current="${i === d}" aria-label="${esc(fmt(di, { weekday: "long" }) + ", " + META[t].t)}">
       <span class="dn">${esc(fmt(di, { weekday: "short" }))}</span>${eff(session(w, i).eff)}<span class="dd">${esc(fmt(di, { month: "numeric", day: "numeric" }))}</span></button>`;
   }).join("");
@@ -611,9 +619,9 @@ function renderSession() {
         <h3>Ground rules</h3>
         <ul class="rules">
           <li><b>Pain rule: 3/10 or less</b><span>Some tendon discomfort is fine if it settles by the next morning. Above that, repeat last week's dose instead of progressing.</span></li>
-          <li><b>48 hours between tendon days</b><span>The Achilles is loaded hard Monday, Wednesday and Saturday so collagen has time to rebuild in between.</span></li>
+          <li><b>48 hours between tendon days</b><span>From Week 4 the Achilles is loaded hard Monday, Wednesday and Saturday so it can rebuild in between. During football, practice loads it daily, so the extra work is holds only.</span></li>
           <li><b>Tempo 3-1-1</b><span>3 s lowering, 1 s pause, 1 s up.</span></li>
-          <li><b>RPE 7–8</b><span>Effort out of 10. RPE 7 means about 3 reps left in the tank.</span></li>
+          <li><b>RPE 7–9</b><span>Effort out of 10. RPE 8 means about 2 reps left. Pick loads by RPE rather than old maxes, especially in season.</span></li>
           <li><b>Rest</b><span>Strength sets 2 min. Jumps 60–90 s, so every rep is fast. Holds 60 s.</span></li>
         </ul>
       </div>
@@ -634,8 +642,8 @@ function renderPlan() {
   const rows = [1, 2, 3, 4, 5, 6, 7, 8].map(w => {
     const p = phaseOf(w);
     return `<tr><th style="border-left-color:${PHASES[p].color}"><b>Week ${w}</b><small>${esc(fmt(dateOf(w, 0), { month: "short", day: "numeric" }))}${w === 8 ? " · taper" : ""}</small></th>${
-      TYPES.map((t, d) => {
-        const s = session(w, d);
+      [0, 1, 2, 3, 4, 5, 6].map(d => {
+        const t = typeFor(w, d), s = session(w, d);
         return `<td><button class="cell${isToday(w, d) ? " is-today" : ""}${S.done[k(w, d)] ? " is-done" : ""}${t === "rest" ? " rest" : ""}" data-goto="${w}-${d}">
           <span class="ct">${eff(s.eff)}${esc(s.meta.s)}</span><span class="cd">${esc(fmt(dateOf(w, d), { month: "numeric", day: "numeric" }))}</span></button></td>`;
       }).join("")}</tr>`;
@@ -704,7 +712,7 @@ function renderSeason() {
   <div class="season">
     <ol class="tl">
       <li class="${inPrep ? "now" : ""}"><span class="when">${esc(fmt(parseD(S.start), { month: "short", day: "numeric" }))} – ${esc(fmt(end, { month: "short", day: "numeric" }))}</span>
-        <h3>Ski prep</h3><p>This 8-week program: Foundation, Strength, then Power with a taper in the final week.</p></li>
+        <h3>Ski prep</h3><p>Weeks 1–3 run alongside football practice with two short lifts a week. Once the season ends, Weeks 4–8 build Strength, then Power, with a taper in the final week.</p></li>
       <li class="${!inPrep ? "now" : ""}"><span class="when">Ski season · through March</span>
         <h3>In-season maintenance</h3>
         <p>Two 30-minute sessions a week keep the strength and tendon stiffness you built. Skip a session after a big ski day and never do Maintenance A the day before you ski.</p>
