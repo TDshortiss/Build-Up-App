@@ -1,0 +1,801 @@
+<title>Fall Line Program</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: app shell. Masthead with countdown and 8-week load profile, segmented nav, then a two-column session view (workout + sidebar) that stacks on phones. Effort uses trail-map symbols: green circle, blue square, black diamond. */
+:root {
+  --bg: #F2F4F5;
+  --surface: #FFFFFF;
+  --sunk: #E8ECEE;
+  --ink: #15212B;
+  --muted: #5A6874;
+  --line: #D6DDE2;
+  --accent: #C9420E;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #FBE6DC;
+  --green: #1E874A;
+  --blue: #1F5FBF;
+  --diamond: #15212B;
+  --p1: #8DB0CB;
+  --p2: #3C73A0;
+  --p3: #C9420E;
+  --warn: #A15C00;
+  --warn-soft: #FFF1D6;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E151B; --surface: #16212A; --sunk: #1C2832; --ink: #E5EBEF; --muted: #92A2AE; --line: #283641;
+    --accent: #FF7A3D; --accent-ink: #1A0D06; --accent-soft: #3A2116;
+    --green: #3DBE74; --blue: #5B9BFF; --diamond: #E5EBEF;
+    --p1: #4F7390; --p2: #6FA3D0; --p3: #FF7A3D;
+    --warn: #F2B24C; --warn-soft: #33270F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E151B; --surface: #16212A; --sunk: #1C2832; --ink: #E5EBEF; --muted: #92A2AE; --line: #283641;
+  --accent: #FF7A3D; --accent-ink: #1A0D06; --accent-soft: #3A2116;
+  --green: #3DBE74; --blue: #5B9BFF; --diamond: #E5EBEF;
+  --p1: #4F7390; --p2: #6FA3D0; --p3: #FF7A3D;
+  --warn: #F2B24C; --warn-soft: #33270F;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 20px 64px; }
+@media (max-width: 480px) { .wrap { padding-inline: 16px; } }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.05; }
+p { margin: 0; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.label { font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* Masthead */
+.mast { display: grid; grid-template-columns: 1fr auto; gap: 20px 32px; align-items: end; padding-block: 8px 20px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.brand h1 { font-size: clamp(44px, 8vw, 72px); font-weight: 700; letter-spacing: -.01em; text-transform: uppercase; }
+.brand h1 span { color: var(--accent); }
+.brand p { color: var(--muted); max-width: 52ch; }
+.count { display: flex; gap: 18px; align-items: flex-end; }
+.count .big { font-family: var(--display); font-weight: 700; font-size: 64px; line-height: .85; font-variant-numeric: tabular-nums; }
+.count .sub { display: flex; flex-direction: column; gap: 2px; padding-bottom: 2px; }
+.count .sub strong { font-family: var(--display); font-size: 22px; font-weight: 600; line-height: 1.1; }
+.sync { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.sync[data-s="synced"]::before { background: var(--green); }
+.sync[data-s="error"]::before { background: var(--warn); }
+@media (max-width: 720px) { .mast { grid-template-columns: 1fr; } .count .big { font-size: 52px; } }
+
+/* Load profile */
+.profile { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding-block: 18px 6px; }
+.wk { display: flex; flex-direction: column; gap: 6px; align-items: stretch; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.wk .bar-track { height: 54px; display: flex; align-items: flex-end; border-bottom: 1px solid var(--line); }
+.wk .bar { width: 100%; border-radius: 4px 4px 0 0; transition: filter .15s; }
+.wk:hover .bar { filter: brightness(1.08); }
+.wk .wl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.wk.now .wl { color: var(--ink); font-weight: 500; }
+.wk.now .bar-track { border-bottom: 2px solid var(--ink); }
+.wk .chk { color: var(--green); }
+.phases { display: grid; grid-template-columns: 3fr 3fr 2fr; gap: 6px; }
+.phases div { font-size: 12px; color: var(--muted); border-top: 3px solid; padding-top: 4px; font-family: var(--display); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
+
+/* Nav */
+nav.tabs { display: flex; gap: 4px; margin-block: 22px 22px; background: var(--sunk); padding: 4px; border-radius: 999px; width: fit-content; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+nav.tabs button { border: 0; background: none; padding: 8px 16px; border-radius: 999px; cursor: pointer; font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+/* Effort symbols */
+.eff { display: inline-block; width: 11px; height: 11px; flex: none; }
+.eff.green { background: var(--green); border-radius: 50%; }
+.eff.blue { background: var(--blue); }
+.eff.black { background: var(--diamond); transform: rotate(45deg) scale(.82); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Session layout */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+.weekbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; }
+.stepper button:disabled { opacity: .35; cursor: default; }
+.stepper .wkname { font-family: var(--display); font-size: 22px; font-weight: 600; min-width: 92px; text-align: center; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--sunk); color: var(--ink); }
+.pill i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-block: 14px 22px; }
+.day { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 4px 7px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; }
+.day .dn { font-family: var(--display); font-weight: 600; font-size: 15px; text-transform: uppercase; letter-spacing: .05em; }
+.day .dd { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.day[aria-current="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.day.is-today .dn { color: var(--accent); }
+.day.is-done::after { content: ""; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+
+.sess-head { display: flex; flex-direction: column; gap: 8px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.sess-head h2 { font-size: clamp(34px, 5vw, 46px); font-weight: 700; text-transform: uppercase; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 15px; }
+.meta span { display: inline-flex; align-items: center; gap: 7px; }
+.focus { max-width: 64ch; }
+.banner { margin-top: 4px; padding: 10px 14px; border-radius: 8px; background: var(--accent-soft); font-size: 15px; }
+
+.block { padding-block: 22px 4px; }
+.block-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.block-h h3 { font-size: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.block-h .note { font-size: 14px; color: var(--muted); }
+ol.exs { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.ex { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.tick { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; margin-top: 1px; color: transparent; transition: background .12s, border-color .12s; }
+.tick svg { width: 14px; height: 14px; }
+.tick:hover { border-color: var(--muted); }
+.ex.is-done .tick { background: var(--green); border-color: var(--green); color: #fff; }
+.ex.is-done .ex-name { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.ex-top { display: flex; justify-content: space-between; gap: 6px 14px; align-items: baseline; flex-wrap: wrap; }
+.ex-name { font-weight: 700; font-size: 17px; }
+.dose { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--ink); background: var(--sunk); padding: 1px 8px; border-radius: 4px; white-space: nowrap; }
+.cue { color: var(--muted); font-size: 15px; margin-top: 3px; max-width: 70ch; }
+details.why { margin-top: 4px; font-size: 14px; }
+details.why summary { cursor: pointer; color: var(--accent); font-weight: 600; width: fit-content; }
+details.why p { margin-top: 4px; max-width: 70ch; }
+details.why a { display: inline-block; margin-top: 4px; font-weight: 600; }
+
+.finish { margin-top: 26px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; gap: 14px; }
+.finish-row { display: flex; gap: 14px 24px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.pain { display: flex; flex-direction: column; gap: 6px; flex: 1 1 260px; min-width: 0; }
+.pain label { font-weight: 600; }
+.pain-row { display: flex; align-items: center; gap: 12px; }
+.pain input[type=range] { flex: 1; accent-color: var(--accent); }
+.pain output { font-family: var(--mono); font-weight: 500; min-width: 44px; text-align: right; }
+.pain-msg { font-size: 14px; color: var(--muted); }
+.pain-msg.warn { color: var(--warn); background: var(--warn-soft); padding: 6px 10px; border-radius: 6px; }
+.btn { border: 0; border-radius: 999px; padding: 11px 22px; font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.done { background: var(--green); color: #fff; }
+
+/* Sidebar */
+aside { display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.card h3 { font-size: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.meter { height: 8px; border-radius: 99px; background: var(--sunk); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--green); border-radius: 99px; }
+.stat-row { display: flex; justify-content: space-between; align-items: baseline; }
+.stat-row b { font-family: var(--display); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rules { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+.rules b { display: block; }
+.rules span { color: var(--muted); }
+
+/* Plan grid */
+.scroll-x { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table.grid { border-collapse: collapse; width: 100%; min-width: 760px; }
+.grid th, .grid td { border-bottom: 1px solid var(--line); padding: 6px; text-align: left; vertical-align: top; }
+.grid thead th { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; font-size: 14px; color: var(--muted); padding: 10px 6px; }
+.grid tbody th { width: 110px; padding: 10px 12px; border-left: 4px solid; }
+.grid tbody th b { font-family: var(--display); font-size: 20px; display: block; line-height: 1; }
+.grid tbody th small { color: var(--muted); font-size: 12px; }
+.grid tr:last-child th, .grid tr:last-child td { border-bottom: 0; }
+.cell { width: 100%; border: 1px solid transparent; background: none; border-radius: 6px; padding: 7px 8px; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 3px; min-height: 58px; }
+.cell:hover { background: var(--sunk); }
+.cell .ct { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; }
+.cell .cd { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.cell.is-today { border-color: var(--accent); }
+.cell.is-done { background: color-mix(in srgb, var(--green) 12%, transparent); }
+.cell.is-done .cd::after { content: " · done"; color: var(--green); font-weight: 500; }
+.cell.rest { opacity: .7; }
+.plan-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.phase-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+@media (max-width: 800px) { .phase-cards { grid-template-columns: 1fr; } }
+.phase-cards .card { border-top: 4px solid; }
+.phase-cards ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: flex; flex-direction: column; gap: 4px; }
+
+/* Library */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.lib .card { gap: 6px; }
+.lib .card h3 { font-size: 21px; text-transform: none; letter-spacing: 0; font-weight: 700; }
+.tag { font-family: var(--display); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
+.lib .cue { margin: 0; color: var(--ink); }
+.lib .wy { color: var(--muted); font-size: 14px; }
+.lib a { font-weight: 600; font-size: 14px; margin-top: auto; padding-top: 4px; }
+
+/* Tests */
+.intro { color: var(--muted); max-width: 70ch; margin-bottom: 18px; }
+table.tests { border-collapse: collapse; width: 100%; min-width: 680px; }
+.tests th, .tests td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.tests thead th { font-family: var(--display); text-transform: uppercase; letter-spacing: .06em; font-size: 14px; color: var(--muted); font-weight: 600; }
+.tests .tname { font-weight: 700; }
+.tests .thow { font-size: 13px; color: var(--muted); font-weight: 400; display: block; max-width: 42ch; }
+.tests .side { font-family: var(--mono); font-size: 13px; color: var(--muted); width: 48px; }
+.tests input { width: 92px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 15px; }
+.tests .lsi td { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.tests .lsi .ok { color: var(--green); font-weight: 500; }
+.tests .lsi .low { color: var(--warn); font-weight: 500; }
+.tests tr.grp th { border-bottom: 0; padding-top: 16px; }
+.target { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+
+/* Season */
+.season { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+@media (max-width: 900px) { .season { grid-template-columns: 1fr; } }
+.tl { list-style: none; margin: 0; padding: 0; position: relative; }
+.tl::before { content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+.tl li { position: relative; padding-left: 34px; padding-bottom: 26px; }
+.tl li::before { content: ""; position: absolute; left: 0; top: 5px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 3px solid var(--line); }
+.tl li.now::before { border-color: var(--accent); background: var(--accent); }
+.tl .when { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.tl h3 { font-size: 26px; font-weight: 700; text-transform: uppercase; margin: 2px 0 6px; }
+.tl p { max-width: 64ch; }
+.tl ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; }
+.maint { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .maint { grid-template-columns: 1fr; } }
+.maint .card { padding: 14px; gap: 6px; }
+.maint .card h4 { margin: 0; font-family: var(--display); font-size: 18px; text-transform: uppercase; letter-spacing: .04em; }
+.mrow { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 5px; }
+.mrow span:last-child { font-family: var(--mono); font-size: 13px; color: var(--muted); text-align: right; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-weight: 600; font-size: 14px; }
+.field input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 15px; }
+.field small { color: var(--muted); font-size: 13px; }
+.fine { font-size: 13px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="brand">
+      <h1>Fall <span>Line</span></h1>
+      <p>Eight weeks to stronger, more mobile hips, knees and ankles, a stiffer Achilles for spring, and legs that last all day on the mountain. Built to carry into football season.</p>
+    </div>
+    <div class="count" id="count"></div>
+  </header>
+
+  <section aria-label="Eight-week load profile">
+    <div class="profile" id="profile"></div>
+    <div class="phases" id="phaseband"></div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-view="session" id="tab-session">Session</button>
+    <button role="tab" data-view="plan" id="tab-plan">8-Week Plan</button>
+    <button role="tab" data-view="library" id="tab-library">Exercises</button>
+    <button role="tab" data-view="tests" id="tab-tests">Benchmarks</button>
+    <button role="tab" data-view="season" id="tab-season">Season</button>
+  </nav>
+
+  <main id="view"></main>
+</div>
+
+<script>
+/* ---------- Exercise library ---------- */
+const EX = {
+  "ankle-cars": { n: "Ankle CARs", j: "ankle", cue: "Draw the biggest, slowest circle you can with your toes. Keep the shin still.", why: "Keeps full ankle range available before you load it. Ski boots lock the ankle, so you want range in reserve for falls and for football." },
+  "kneewall": { n: "Knee-to-Wall Mobilization", j: "ankle", cue: "Foot a hand-width from the wall. Drive the knee over the second toe to touch the wall, heel stays down.", why: "Ankle dorsiflexion. When it's limited, landing and squatting forces shift up into the knee and Achilles." },
+  "hip-cars": { n: "Hip CARs", j: "hip", cue: "On hands and knees, lift one knee and trace the largest circle the hip allows. The pelvis does not move.", why: "Takes the hip capsule through full rotation. Ski turns and football cuts both rotate on a loaded hip." },
+  "9090": { n: "90/90 Hip Switches", j: "hip", cue: "Sit with both knees bent to 90°. Rotate both knees to the other side with a tall chest. Hands off the floor when you can.", why: "Trains internal and external rotation together. Low internal rotation is a common driver of groin and knee strain." },
+  "bandwalk": { n: "Banded Lateral Walk", j: "hip", cue: "Band around the knees, quarter squat, step sideways without letting the knees cave in.", why: "Wakes up the glute med, which keeps the knee tracking over the foot when you land, cut or carve." },
+  "worlds": { n: "World's Greatest Stretch", j: "hip", cue: "Long lunge, hand inside the front foot, rotate the chest and reach to the ceiling. Then straighten the front leg.", why: "Hip flexor, adductor, hamstring and upper-back rotation in one movement." },
+  "couch": { n: "Couch Stretch", j: "hip", cue: "Back knee against a wall, foot up behind you. Squeeze the glute and stay tall without arching the low back.", why: "Opens hip flexors and quads, which tighten from the flexed ski stance and from sitting." },
+  "cossack": { n: "Cossack Squat", j: "hip", cue: "Wide stance, sit into one hip with the other leg straight and toes up. Bent-side heel stays down.", why: "Strength at the end of adductor and knee range, which is where groin strains and awkward ski falls happen." },
+  "adductor-rock": { n: "Adductor Rock-Back", j: "hip", cue: "On hands and knees with one leg out to the side, rock the hips back toward your heel with a flat back.", why: "Gentle adductor length. Pairs with the Copenhagen plank for groin protection." },
+  "pigeon": { n: "Elevated Pigeon", j: "hip", cue: "Front shin across a bench or bed, hips square. Fold forward over the shin until you feel the outer hip.", why: "Hip external rotation and glute length." },
+  "deep-squat": { n: "Deep Squat Hold", j: "hip", cue: "Sit to the bottom of a squat, heels down, elbows pressing the knees out. Hold a post for balance if needed.", why: "Restores combined hip, knee and ankle flexion, the position you pass through every time you absorb a bump." },
+  "copenhagen": { n: "Copenhagen Plank", j: "hip", cue: "Side plank with the top leg on a bench (knee on bench is easier, foot is harder). Lift the bottom leg up to meet it.", why: "The best-supported exercise for preventing groin strains in field sports." },
+  "lateral-lunge": { n: "Lateral Lunge", j: "hip", cue: "Step wide to the side, sit into that hip with the foot flat and knee over toes, push back to start.", why: "Side-to-side strength for edging on skis and for cutting on the field." },
+  "slrdl": { n: "Single-Leg RDL", j: "hip", cue: "Hinge at the hip on one leg, back leg long, hips square to the floor. Soft bend in the standing knee.", why: "Hamstring and glute strength with balance. Strong hamstrings protect the ACL when skiing and resist strains when sprinting." },
+  "goblet": { n: "Goblet Squat", j: "knee", cue: "Dumbbell at your chest, sit between the heels, knees track over toes. Tempo 3-1-1.", why: "Clean squat mechanics under load and quad strength for long runs." },
+  "spanish": { n: "Spanish Squat Hold", j: "knee", cue: "Heavy band behind both knees anchored to a post. Sit back until shins are vertical and thighs near parallel. Hold.", why: "High quad load with little knee shear. Isometrics settle patellar tendon pain and build tendon stiffness." },
+  "trapbar": { n: "Trap-Bar Deadlift", j: "knee", cue: "Hips back, chest up, push the floor away. Stop 2–3 reps short of failure.", why: "Heavy whole-leg strength. Maximum strength sets the ceiling for power." },
+  "split": { n: "Rear-Foot-Elevated Split Squat", j: "knee", cue: "Back foot on a bench. Drop the back knee straight down; the front knee may travel past the toes.", why: "Single-leg strength through full knee range. Moguls and crud demand deep knee bend under load." },
+  "nordic": { n: "Nordic Hamstring Curl", j: "knee", cue: "Kneel with heels anchored. Lower your body forward as slowly as you can, catch with your hands, push back up.", why: "Eccentric hamstring strength. Cuts hamstring strain rates in football and supports the ACL." },
+  "petersen": { n: "Petersen Step-Up", j: "knee", cue: "One foot on a low step, heel raised. Drive the knee forward past the toes to lift the other heel off the floor.", why: "Targets the inner quad and end-range knee extension, the base of a resilient knee." },
+  "stepdown": { n: "Lateral Step-Down", j: "knee", cue: "Stand on a box, slowly lower the other heel to tap the floor. Keep the knee in line with the second toe.", why: "Knee control. A knee caving inward on landing is the classic ACL injury pattern." },
+  "wallsit": { n: "Wall Sit", j: "knee", cue: "Back on the wall, thighs parallel to the floor. Progress by shifting weight left to right.", why: "Quad endurance. Skiing holds you in a flexed stance for minutes at a time." },
+  "calf-iso": { n: "Isometric Calf Hold", j: "ankle", cue: "Straight knee, rise halfway onto the ball of the foot and hold under heavy load (Smith bar, loaded pack, or pushing up into a fixed bar).", why: "Heavy isometrics raise Achilles stiffness with very little irritation. This is the foundation for explosiveness." },
+  "tibraise": { n: "Tibialis Raise", j: "ankle", cue: "Back against a wall, heels about 30 cm out. Lift the toes as high as possible, lower slowly.", why: "Strengthens the front of the shin to balance calf work, helps against shin splints, and is what you press into the boot tongue with." },
+  "calf-raise-heavy": { n: "Heavy Slow Calf Raise", j: "ankle", cue: "Straight knee, full range off a step. 3 s up, 3 s down. The last rep should be hard.", why: "Heavy slow resistance remodels the Achilles and increases its stiffness and capacity." },
+  "sl-balance": { n: "Single-Leg Balance", j: "ankle", cue: "One leg, soft knee. Progress to eyes closed, then onto a cushion or folded mat.", why: "Ankle proprioception. Balance training substantially lowers ankle sprain risk." },
+  "ecc-calf": { n: "Eccentric Calf Raise", j: "ankle", cue: "Rise on two feet off a step, shift onto one, lower for 3 s below step level. Do half straight-knee, half bent-knee.", why: "The classic Achilles loading protocol. Builds tendon tolerance before the jumping work." },
+  "soleus": { n: "Seated Soleus Raise", j: "ankle", cue: "Seated, knees at 90°, heavy load on the thighs. Raise the heels high, lower slowly.", why: "The soleus carries the most load in running and in a bent-knee ski stance, and it is usually undertrained." },
+  "pogo": { n: "Pogo Hops", j: "power", cue: "Two-foot hops with stiff ankles and nearly straight knees. Bounce off the balls of the feet with minimal ground time.", why: "The core Achilles stiffness drill. Trains the tendon to store and return energy like a spring." },
+  "sl-pogo": { n: "Single-Leg Pogos", j: "power", cue: "Pogos on one leg. Stay tall, land quietly, keep contacts quick.", why: "More elastic load per tendon, and single-leg reactivity for cutting." },
+  "latline": { n: "Lateral Line Hops", j: "power", cue: "Feet together, hop side to side over a line as fast as you can, staying on the balls of the feet.", why: "Fast lateral ankle stiffness and footwork for edge changes and cuts." },
+  "skater": { n: "Skater Bounds", j: "power", cue: "Bound sideways from one leg to the other. Land soft on the outside leg and stick it before the next bound.", why: "Lateral power and landing control. The closest dry-land match to carving and to cutting." },
+  "broad": { n: "Broad Jump", j: "power", cue: "Swing the arms, jump as far forward as you can, land on both feet and hold 2 s.", why: "Horizontal power for acceleration. Doubles as a benchmark test." },
+  "drop-jump": { n: "Drop Jump", j: "power", cue: "Step off a 30 cm box, land on both feet and rebound straight up with the shortest contact you can.", why: "Reactive strength. Turns tendon stiffness into usable explosiveness." },
+  "latbox": { n: "Lateral Box Hops", j: "power", cue: "Hop side to side over a low box or bench (20–30 cm) continuously, staying light.", why: "Ski-specific power endurance that mimics the repeated lateral loading of linked turns." },
+  "squat-jump": { n: "Squat Jump", j: "power", cue: "Squat to parallel, pause 1 s, jump as high as you can, land softly.", why: "Leg power from a bent-knee position, without a countermovement to help." },
+  "sideplank": { n: "Side Plank", j: "core", cue: "Elbow under shoulder, hips high, body straight. Lift the top leg to add hip work.", why: "Lateral trunk and glute med. Keeps the pelvis level on one-leg landings." },
+  "pallof": { n: "Pallof Press", j: "core", cue: "Band at chest height to your side. Press the hands straight out and resist the twist, knees bent as in a ski stance.", why: "Anti-rotation strength. The upper body stays quiet while the legs turn underneath." },
+  "deadbug": { n: "Dead Bug", j: "core", cue: "On your back, low back pressed down. Slowly extend opposite arm and leg without the back lifting.", why: "Trunk control that carries over to landing and change of direction." },
+  "z2": { n: "Zone 2 Cardio", j: "core", cue: "Bike, incline walk or easy jog at a pace you can hold breathing through your nose.", why: "Aerobic base. Faster recovery between runs and fresher legs at altitude." },
+  "bike-int": { n: "Bike Intervals", j: "core", cue: "Hard but repeatable effort (about 8/10), then easy spin for the recovery period.", why: "A ski run lasts 1 to 3 minutes. These intervals train exactly that energy system." },
+  "walk": { n: "Easy Walk", j: "core", cue: "Conversation pace, outside if you can.", why: "Blood flow and recovery without load." }
+};
+const JOINTS = { hip: "Hips", knee: "Knees", ankle: "Ankles & Achilles", power: "Elastic power", core: "Trunk & engine" };
+
+/* ---------- Program ---------- */
+const PHASES = {
+  1: { n: "Foundation", weeks: "Weeks 1–3", color: "var(--p1)", goal: "Restore range and build tendon tolerance with isometrics and slow tempo work.", notes: ["Leave 2–3 reps in the tank on every set", "Isometric holds: push hard, breathe steadily", "Pogos stay low and quick, no max jumps yet"] },
+  2: { n: "Strength", weeks: "Weeks 4–6", color: "var(--p2)", goal: "Heavy slow loading for strength and Achilles stiffness. Introduce real plyometrics.", notes: ["Add load when the top of the rep range feels easy", "Nordics: slow the lowering before adding reps", "Stick every landing for 2 s"] },
+  3: { n: "Power", weeks: "Weeks 7–8", color: "var(--p3)", goal: "Convert strength to explosiveness and ski-specific endurance, then taper.", notes: ["Every rep fast, stop if contacts get slow", "Week 8 is a taper: about half the volume", "Arrive at the mountain fresh, not sore"] }
+};
+const phaseOf = w => (w <= 3 ? 1 : w <= 6 ? 2 : 3);
+const wIn = w => (w <= 3 ? w - 1 : w <= 6 ? w - 4 : w - 7);
+const LOAD = [3, 4, 5, 6, 7, 8, 9, 5];
+
+const TYPES = ["strA", "mob", "elastic", "balance", "strB", "engine", "rest"];
+const META = {
+  strA: { t: "Strength A", s: "Strength A", min: 50, eff: ["blue", "black", "black"], focus: "Bilateral strength and heavy tendon loading for the knees and Achilles." },
+  mob: { t: "Mobility Flow", s: "Mobility", min: 20, eff: ["green", "green", "green"], focus: "Full-range hip, knee and ankle mobility. Move slowly and breathe into the end range." },
+  elastic: { t: "Achilles & Elastic", s: "Elastic", min: 35, eff: ["blue", "blue", "black"], focus: "Tendon stiffness and spring. This is the session that builds explosiveness." },
+  balance: { t: "Balance & Reset", s: "Balance", min: 20, eff: ["green", "green", "green"], focus: "Ankle proprioception, knee control and trunk stability at low intensity." },
+  strB: { t: "Strength B", s: "Strength B", min: 45, eff: ["blue", "black", "blue"], focus: "Single-leg and lateral strength for edging, cutting and landing." },
+  engine: { t: "Ski Engine", s: "Engine", min: 40, eff: ["blue", "black", "black"], focus: "Leg endurance and the 1–3 minute energy system that a ski run demands." },
+  rest: { t: "Rest Day", s: "Rest", min: 30, eff: ["green", "green", "green"], focus: "Recovery is when tendons adapt. Walk, stretch lightly, sleep well." }
+};
+const EFF_LABEL = { green: "Easy", blue: "Moderate", black: "Hard" };
+
+const PRIMER = { name: "Primer", note: "about 8 min", items: [["ankle-cars", "5 circles each way"], ["kneewall", "10 / side"], ["hip-cars", "3 each way / side"], ["9090", "8 switches"], ["bandwalk", "2 × 10 steps each way"]] };
+
+const TPL = {
+  strA: {
+    1: [{ name: "Main lifts", items: [["goblet", ["3 × 8 · 3-1-1", "3 × 10 · 3-1-1", "4 × 8 · 3-1-1"]], ["spanish", ["5 × 30 s", "5 × 45 s", "5 × 45 s, firmer band"]], ["slrdl", ["3 × 8 / side", "3 × 10 / side", "3 × 10 / side, +load"]]] },
+        { name: "Tendon", items: [["calf-iso", ["5 × 30 s", "5 × 45 s", "5 × 45 s, +load"]], ["tibraise", "2 × 15"]] },
+        { name: "Groin", items: [["copenhagen", ["3 × 15 s / side, knee", "3 × 20 s / side, knee", "3 × 20 s / side, foot"]]] }],
+    2: [{ name: "Main lifts", items: [["trapbar", ["4 × 5 · RPE 7", "5 × 5 · RPE 7", "5 × 4 · RPE 8"]], ["split", ["3 × 8 / side · 3-0-1", "3 × 8 / side, +load", "4 × 6 / side, heavier"]], ["nordic", ["3 × 4", "3 × 5", "3 × 6"]]] },
+        { name: "Tendon", items: [["calf-raise-heavy", ["4 × 8 · 3-0-3", "4 × 8 · 3-0-3, +load", "4 × 6 · 3-0-3, +load"]], ["spanish", "3 × 45 s"]] },
+        { name: "Groin", items: [["copenhagen", ["3 × 20 s / side, foot", "3 × 25 s / side", "3 × 30 s / side"]]] }],
+    3: [{ name: "Power", items: [["broad", ["4 × 3, stick each", "3 × 3"]]] },
+        { name: "Main lifts", items: [["trapbar", ["4 × 3 · fast up, RPE 7", "3 × 3 · RPE 6"]], ["split", ["3 × 5 / side", "2 × 5 / side"]], ["nordic", ["2 × 6", "2 × 4"]]] },
+        { name: "Tendon & groin", items: [["calf-raise-heavy", ["3 × 8 · 3-0-3", "2 × 8"]], ["copenhagen", ["2 × 30 s / side", "2 × 20 s / side"]]] }]
+  },
+  mob: {
+    1: [{ name: "Flow", note: "move straight through", items: [["worlds", "5 / side"], ["couch", "2 × 60 s / side"], ["cossack", "2 × 6 / side"], ["adductor-rock", "10 / side"], ["pigeon", "60 s / side"], ["deep-squat", "3 × 45 s"], ["kneewall", "2 × 10 / side, banded"]] }],
+    2: [{ name: "Flow", note: "move straight through", items: [["worlds", "5 / side"], ["couch", "2 × 60 s / side"], ["cossack", "2 × 8 / side, hold 5 kg"], ["adductor-rock", "10 / side"], ["pigeon", "60 s / side"], ["deep-squat", "3 × 60 s"], ["kneewall", "2 × 10 / side, banded"]] }]
+  },
+  elastic: {
+    1: [{ name: "Tendon", items: [["ecc-calf", ["3 × 10 / side · 3 s down", "3 × 12 / side", "3 × 15 / side"]], ["soleus", ["3 × 12", "3 × 15", "3 × 15, +load"]]] },
+        { name: "Elastic", items: [["pogo", ["3 × 15, low & quick", "3 × 20", "4 × 20"]], ["latline", ["2 × 15 s", "3 × 15 s", "3 × 20 s"]]] },
+        { name: "Control", items: [["sl-balance", ["3 × 30 s / side, eyes open", "3 × 30 s / side, eyes closed", "3 × 30 s / side, on cushion"]], ["stepdown", ["3 × 8 / side", "3 × 10 / side", "3 × 10 / side"]]] }],
+    2: [{ name: "Elastic", items: [["pogo", "3 × 20, higher"], ["sl-pogo", ["3 × 8 / side", "3 × 10 / side", "4 × 10 / side"]], ["latline", "3 × 20 s"], ["skater", ["3 × 4 / side, stick 2 s", "3 × 5 / side, stick", "3 × 6 / side, stick"]]] },
+        { name: "Tendon", items: [["ecc-calf", ["3 × 10 / side, +5 kg", "3 × 10 / side, +10 kg", "3 × 8 / side, +15 kg"]]] },
+        { name: "Control", items: [["sl-balance", "3 × 30 s / side, eyes closed on cushion"]] }],
+    3: [{ name: "Reactive", items: [["drop-jump", ["4 × 4 from 30 cm", "2 × 4"]], ["sl-pogo", ["4 × 12 / side", "2 × 10 / side"]], ["skater", ["4 × 6 / side, continuous", "2 × 6 / side"]], ["latbox", ["4 × 20 s", "2 × 20 s"]]] },
+        { name: "Tendon", items: [["ecc-calf", ["2 × 10 / side, +load", "2 × 8 / side"]]] }]
+  },
+  balance: {
+    1: [{ name: "Control", items: [["sl-balance", "3 × 30 s / side"], ["stepdown", "2 × 10 / side, slow"], ["pallof", "3 × 10 / side"], ["deadbug", "3 × 8 / side"]] },
+        { name: "Reset", items: [["hip-cars", "3 each way / side"], ["couch", "60 s / side"], ["kneewall", "10 / side"]] }]
+  },
+  strB: {
+    1: [{ name: "Main lifts", items: [["split", ["3 × 8 / side, bodyweight", "3 × 10 / side", "3 × 8 / side, +dumbbells"]], ["lateral-lunge", ["3 × 6 / side", "3 × 8 / side", "3 × 8 / side, +load"]], ["petersen", ["3 × 12 / side", "3 × 15 / side", "3 × 15 / side, +load"]]] },
+        { name: "Accessories", items: [["bandwalk", "3 × 12 steps each way"], ["sideplank", ["3 × 20 s / side", "3 × 30 s / side", "3 × 30 s / side, leg lift"]], ["tibraise", ["2 × 15", "2 × 20", "2 × 20, +load"]]] }],
+    2: [{ name: "Main lifts", items: [["lateral-lunge", ["4 × 6 / side, loaded", "4 × 6 / side, +load", "4 × 5 / side, heavier"]], ["slrdl", ["3 × 8 / side, heavy", "3 × 8 / side, +load", "3 × 6 / side, heavier"]], ["stepdown", ["3 × 10 / side, hold a plate", "3 × 10 / side", "3 × 12 / side"]], ["petersen", "3 × 12 / side"]] },
+        { name: "Trunk", items: [["pallof", "3 × 10 / side"], ["sideplank", "3 × 30 s / side, leg lift"]] }],
+    3: [{ name: "Main lifts", items: [["lateral-lunge", ["3 × 5 / side, fast up", "2 × 5 / side"]], ["slrdl", ["3 × 6 / side", "2 × 6 / side"]], ["stepdown", "2 × 10 / side"]] },
+        { name: "Trunk", items: [["pallof", "3 × 10 / side"], ["sideplank", ["3 × 30 s / side", "2 × 30 s / side"]]] }]
+  },
+  engine: {
+    1: [{ name: "Aerobic base", items: [["z2", ["25 min", "30 min", "35 min"]]] },
+        { name: "Ski legs", items: [["wallsit", ["4 × 45 s", "4 × 60 s", "4 × 75 s"]], ["deadbug", "2 × 8 / side"]] }],
+    2: [{ name: "Intervals", items: [["bike-int", ["6 × 60 s hard / 60 s easy", "6 × 90 s / 90 s", "6 × 2 min / 2 min"]]] },
+        { name: "Ski legs", items: [["wallsit", ["3 × 90 s", "3 × 2 min, shift side to side", "3 × 2 min, shift side to side"]], ["stepdown", "2 × 12 / side, slow"]] },
+        { name: "Cool-down", items: [["z2", "10 min"]] }],
+    3: [{ name: "Ski circuit", note: ["4 rounds · 90 s rest between", "2 rounds · easy pace"], items: [["latbox", ["40 s", "30 s"]], ["squat-jump", ["10 reps", "6 reps"]], ["wallsit", ["60 s", "45 s"]], ["skater", ["30 s continuous", "20 s"]]] },
+        { name: "Aerobic", items: [["z2", "15 min"]] }]
+  },
+  rest: {
+    1: [{ name: "Recovery", items: [["walk", "30–45 min"], ["couch", "optional · 60 s / side"], ["9090", "optional · 8 switches"]] }]
+  }
+};
+
+const MAINT = {
+  A: { t: "Maintenance A · Strength", items: [["trapbar", "3 × 4 · RPE 7"], ["split", "2 × 6 / side"], ["nordic", "2 × 5"], ["calf-raise-heavy", "3 × 8 · 3-0-3"], ["copenhagen", "2 × 20 s / side"]] },
+  B: { t: "Maintenance B · Spring & Range", items: [["pogo", "2 × 20"], ["sl-balance", "2 × 30 s / side"], ["cossack", "2 × 6 / side"], ["couch", "60 s / side"], ["kneewall", "10 / side"], ["wallsit", "2 × 60 s"]] }
+};
+
+const TESTS = [
+  { id: "kneewall", n: "Knee-to-wall", unit: "cm", bi: true, target: "≥ 10 cm", how: "Furthest toe-to-wall distance with the knee touching and the heel down." },
+  { id: "calfreps", n: "Single-leg calf raises", unit: "reps", bi: true, target: "≥ 25", how: "Full range off a step, 1 rep every 2 s, to failure." },
+  { id: "balance", n: "Single-leg balance, eyes closed", unit: "s", bi: true, target: "≥ 30 s", how: "Hands on hips. Stop when the foot shifts or the other foot touches down." },
+  { id: "hop", n: "Single-leg hop for distance", unit: "cm", bi: true, target: "LSI ≥ 90%", how: "Hop and stick the landing on the same leg. Best of 3." },
+  { id: "broad", n: "Broad jump", unit: "cm", bi: false, target: "Trend up", how: "Two-foot takeoff and landing, stick it. Best of 3, measured to the heels." },
+  { id: "wallsit", n: "Wall sit", unit: "s", bi: false, target: "≥ 120 s", how: "Thighs parallel, until form breaks." }
+];
+const TCOLS = [["base", "Week 0"], ["mid", "End wk 4"], ["final", "End wk 8"]];
+
+const pick = (v, w) => (Array.isArray(v) ? v[Math.min(wIn(w), v.length - 1)] : v);
+
+function session(w, d) {
+  const type = TYPES[d], p = phaseOf(w), meta = META[type];
+  const tpl = TPL[type][p] || TPL[type][2] || TPL[type][1];
+  const blocks = [];
+  if (["strA", "elastic", "strB", "engine"].includes(type)) blocks.push(PRIMER);
+  tpl.forEach(b => blocks.push(b));
+  let eff = meta.eff[p - 1];
+  const taper = w === 8;
+  if (taper && eff === "black") eff = "blue";
+  return {
+    type, meta, eff, taper,
+    blocks: blocks.map(b => ({ name: b.name, note: b.note ? pick(b.note, w) : "", items: b.items.map(([id, dose]) => ({ id, dose: pick(dose, w) })) }))
+  };
+}
+
+/* ---------- State ---------- */
+const KEY = "fall-line:v1";
+const DEFAULTS = { start: "2026-10-12", ski: "2026-12-12", checks: {}, done: {}, pain: {}, tests: {} };
+const clone = o => JSON.parse(JSON.stringify(o));
+let S = (() => { try { const r = localStorage.getItem(KEY); if (r) return Object.assign(clone(DEFAULTS), JSON.parse(r)); } catch (e) {} return clone(DEFAULTS); })();
+let view = (() => { const h = (location.hash || "").slice(1); if (["session", "plan", "library", "tests", "season"].includes(h)) return h; try { return localStorage.getItem(KEY + ":view") || "session"; } catch (e) { return "session"; } })();
+let libFilter = "all";
+
+/* ---------- Dates ---------- */
+const DAY = 864e5;
+const parseD = s => { const [y, m, d] = String(s).split("-").map(Number); return new Date(y, (m || 1) - 1, d || 1, 12); };
+const today = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate(), 12); };
+const dateOf = (w, d) => new Date(parseD(S.start).getTime() + ((w - 1) * 7 + d) * DAY);
+const fmt = (dt, o) => dt.toLocaleDateString(undefined, o);
+function pos() {
+  const o = Math.round((today() - parseD(S.start)) / DAY);
+  if (o < 0) return { w: 1, d: 0, pre: true, o };
+  if (o >= 56) return { w: 8, d: 6, post: true, o };
+  return { w: Math.floor(o / 7) + 1, d: o % 7, o };
+}
+const isToday = (w, d) => { const p = pos(); return !p.pre && !p.post && p.w === w && p.d === d; };
+let sel = (() => { const p = pos(); return { w: p.w, d: p.d }; })();
+const k = (w, d) => w + "-" + d;
+
+/* ---------- Persistence: account sync with on-device fallback ---------- */
+let ref = null, saving = false, queued = false, dirty = false, timer = null;
+function setSync(s) {
+  const el = document.getElementById("sync");
+  if (!el) return;
+  el.dataset.s = s;
+  el.textContent = s === "synced" ? "Progress saved to your account" : s === "error" ? "Sync paused, saved on this device" : "Progress saved on this device";
+}
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  if (!ref) return;
+  dirty = true; clearTimeout(timer); timer = setTimeout(flush, 700);
+}
+async function flush() {
+  if (!ref) { dirty = false; return; }
+  if (saving) { queued = true; return; }
+  saving = true; dirty = false;
+  try { await ref.set(clone(S)); setSync("synced"); }
+  catch (e) { if (e && e.code === "invalid_argument") ref = null; setSync(e && e.code === "invalid_argument" ? "local" : "error"); }
+  saving = false;
+  if (queued) { queued = false; flush(); }
+}
+function hasData() { return Object.keys(S.done).length || Object.keys(S.checks).length || Object.keys(S.tests).length || S.start !== DEFAULTS.start || S.ski !== DEFAULTS.ski; }
+(async () => {
+  try {
+    if (!window.claude || !window.claude.use) { setSync("local"); return; }
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (!db || !user) { setSync("local"); return; }
+    const uid = await user.id();
+    if (!uid) { setSync("local"); return; }
+    ref = db.doc("data/users/" + uid + "/progress");
+    let first = true;
+    ref.onSnapshot(snap => {
+      if (dirty || saving) return;
+      if (snap.exists) {
+        S = Object.assign(clone(DEFAULTS), clone(snap.data()));
+        try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+        if (first) { const p = pos(); sel = { w: p.w, d: p.d }; }
+        renderAll();
+        setSync("synced");
+      } else if (first && hasData()) { flush(); }
+      else setSync("synced");
+      first = false;
+    }, () => { ref = null; setSync("local"); });
+  } catch (e) { setSync("local"); }
+})();
+
+/* ---------- Rendering ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const eff = c => `<i class="eff ${c}" aria-hidden="true"></i>`;
+const demo = id => "https://www.youtube.com/results?search_query=" + encodeURIComponent(EX[id].n + " exercise");
+const CHECK = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>`;
+const doneCount = w => [0, 1, 2, 3, 4, 5].filter(d => S.done[k(w, d)]).length;
+
+function renderMast() {
+  const days = Math.round((parseD(S.ski) - today()) / DAY);
+  const big = days > 0 ? days : days === 0 ? "0" : "✓";
+  const line = days > 1 ? "days to first chair" : days === 1 ? "day to first chair" : days === 0 ? "First chair is today" : "Ski season is on";
+  document.getElementById("count").innerHTML = `
+    <div class="big">${big}</div>
+    <div class="sub"><span class="label">${esc(line)}</span><strong>${esc(fmt(parseD(S.ski), { weekday: "short", month: "short", day: "numeric", year: "numeric" }))}</strong><span class="sync" id="sync"></span></div>`;
+  setSync(ref ? "synced" : "local");
+  const p = pos();
+  document.getElementById("profile").innerHTML = LOAD.map((l, i) => {
+    const w = i + 1, c = PHASES[phaseOf(w)].color, dc = doneCount(w);
+    const now = !p.pre && !p.post && p.w === w;
+    return `<button class="wk${now ? " now" : ""}" data-goto="${w}-${now ? p.d : 0}" aria-label="Week ${w}, ${PHASES[phaseOf(w)].n}${now ? ", current week" : ""}, ${dc} of 6 sessions done">
+      <span class="bar-track"><span class="bar" style="height:${l * 10 + 8}%;background:${c}"></span></span>
+      <span class="wl"><span>W${w}</span><span class="chk">${dc ? dc + "/6" : ""}</span></span></button>`;
+  }).join("");
+  document.getElementById("phaseband").innerHTML = [1, 2, 3].map(n => `<div style="border-color:${PHASES[n].color}">${PHASES[n].n}</div>`).join("");
+}
+
+function renderTabs() {
+  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === view ? "true" : "false"));
+}
+
+function renderSession() {
+  const { w, d } = sel, s = session(w, d), key = k(w, d), p = phaseOf(w), dt = dateOf(w, d);
+  const checks = S.checks[key] || {}, done = !!S.done[key], pain = S.pain[key];
+  const pp = pos();
+  let eyebrow = fmt(dt, { weekday: "long", month: "long", day: "numeric" });
+  if (isToday(w, d)) eyebrow = "Today · " + eyebrow;
+  const days = TYPES.map((t, i) => {
+    const di = dateOf(w, i);
+    return `<button class="day${isToday(w, i) ? " is-today" : ""}${S.done[k(w, i)] ? " is-done" : ""}" data-day="${i}" aria-current="${i === d}" aria-label="${esc(fmt(di, { weekday: "long" }) + ", " + META[t].t)}">
+      <span class="dn">${esc(fmt(di, { weekday: "short" }))}</span>${eff(session(w, i).eff)}<span class="dd">${esc(fmt(di, { month: "numeric", day: "numeric" }))}</span></button>`;
+  }).join("");
+  let banner = "";
+  if (pp.pre && w === 1 && d === 0) banner = `<p class="banner">The program starts ${esc(fmt(parseD(S.start), { weekday: "long", month: "short", day: "numeric" }))}. Record your Week 0 benchmarks before then so you can see what changed.</p>`;
+  else if (pp.post) banner = `<p class="banner">You've finished the 8 weeks. Switch to the two maintenance sessions in the Season tab while you're skiing.</p>`;
+  else if (s.taper && s.type !== "rest" && s.type !== "mob" && s.type !== "balance") banner = `<p class="banner">Taper week. Volume is cut roughly in half. Keep the reps sharp and fast and finish each session feeling fresher than you started.</p>`;
+
+  const blocks = s.blocks.map((b, bi) => `
+    <section class="block">
+      <div class="block-h"><h3>${esc(b.name)}</h3>${b.note ? `<span class="note">${esc(b.note)}</span>` : ""}</div>
+      <ol class="exs">${b.items.map((it, ii) => {
+        const e = EX[it.id], ck = bi + "." + ii, on = !!checks[ck];
+        return `<li class="ex${on ? " is-done" : ""}">
+          <button class="tick" data-tick="${ck}" aria-pressed="${on}" aria-label="Mark ${esc(e.n)} done">${CHECK}</button>
+          <div>
+            <div class="ex-top"><span class="ex-name">${esc(e.n)}</span><span class="dose">${esc(it.dose)}</span></div>
+            <p class="cue">${esc(e.cue)}</p>
+            <details class="why"><summary>Why it's here</summary><p>${esc(e.why)}</p><a href="${demo(it.id)}" target="_blank" rel="noopener">Watch a demo ↗</a></details>
+          </div></li>`;
+      }).join("")}</ol>
+    </section>`).join("");
+
+  const total = s.blocks.reduce((a, b) => a + b.items.length, 0);
+  const ticked = Object.values(checks).filter(Boolean).length;
+  const wd = doneCount(w);
+
+  document.getElementById("view").innerHTML = `
+  <div class="layout">
+    <div>
+      <div class="weekbar">
+        <div class="stepper">
+          <button data-week="-1" ${w <= 1 ? "disabled" : ""} aria-label="Previous week">‹</button>
+          <span class="wkname">Week ${w}</span>
+          <button data-week="1" ${w >= 8 ? "disabled" : ""} aria-label="Next week">›</button>
+        </div>
+        <span class="pill"><i style="background:${PHASES[p].color}"></i>Phase ${p} · ${PHASES[p].n}</span>
+      </div>
+      <div class="days">${days}</div>
+      <header class="sess-head">
+        <span class="label">${esc(eyebrow)}</span>
+        <h2>${esc(s.meta.t)}</h2>
+        <div class="meta"><span>${eff(s.eff)}${EFF_LABEL[s.eff]}</span><span>~${s.taper && s.meta.min > 30 ? Math.round(s.meta.min * 0.7) : s.meta.min} min</span><span id="tickcount" class="mono">${ticked}/${total} done</span></div>
+        <p class="focus">${esc(s.meta.focus)}</p>
+        ${banner}
+      </header>
+      ${blocks}
+      <div class="finish">
+        <div class="finish-row">
+          <div class="pain">
+            <label for="pain">Achilles / knee discomfort after this session</label>
+            <div class="pain-row"><input type="range" id="pain" min="0" max="10" step="1" value="${pain ?? 0}"><output id="painout" class="mono">${pain ?? 0}/10</output></div>
+            <p class="pain-msg${(pain ?? 0) > 3 ? " warn" : ""}" id="painmsg">${painMsg(pain ?? 0)}</p>
+          </div>
+          <button class="btn${done ? " done" : ""}" data-complete id="completebtn">${done ? "Completed ✓" : "Mark session complete"}</button>
+        </div>
+      </div>
+    </div>
+    <aside>
+      <div class="card">
+        <div class="stat-row"><h3>Week ${w}</h3><b class="mono">${wd}/6</b></div>
+        <div class="meter"><i style="width:${(wd / 6) * 100}%"></i></div>
+        <p class="fine">Training sessions completed this week. Sunday is rest.</p>
+      </div>
+      <div class="card" style="border-top:4px solid ${PHASES[p].color}">
+        <span class="label">${PHASES[p].weeks}</span>
+        <h3>${PHASES[p].n}</h3>
+        <p>${esc(PHASES[p].goal)}</p>
+        <ul class="rules">${PHASES[p].notes.map(n => `<li><span>${esc(n)}</span></li>`).join("")}</ul>
+      </div>
+      <div class="card">
+        <h3>Ground rules</h3>
+        <ul class="rules">
+          <li><b>Pain rule: 3/10 or less</b><span>Some tendon discomfort is fine if it settles by the next morning. Above that, repeat last week's dose instead of progressing.</span></li>
+          <li><b>48 hours between tendon days</b><span>The Achilles is loaded hard Monday, Wednesday and Saturday so collagen has time to rebuild in between.</span></li>
+          <li><b>Tempo 3-1-1</b><span>3 s lowering, 1 s pause, 1 s up.</span></li>
+          <li><b>RPE 7–8</b><span>Effort out of 10. RPE 7 means about 3 reps left in the tank.</span></li>
+          <li><b>Rest</b><span>Strength sets 2 min. Jumps 60–90 s, so every rep is fast. Holds 60 s.</span></li>
+        </ul>
+      </div>
+      <div class="card"><span class="label">Effort, trail-map style</span><div class="legend"><span>${eff("green")}Easy</span><span>${eff("blue")}Moderate</span><span>${eff("black")}Hard</span></div></div>
+    </aside>
+  </div>`;
+}
+function painMsg(v) {
+  v = Number(v);
+  if (v === 0) return "No discomfort. Progress as written next session.";
+  if (v <= 3) return "Within the safe zone. Check it again tomorrow morning.";
+  return "Above 3/10. Repeat this week's dose next time and drop jumps until it settles. See a physio if it lingers.";
+}
+
+function renderPlan() {
+  const pp = pos();
+  const wk1 = [0, 1, 2, 3, 4, 5, 6].map(i => fmt(dateOf(1, i), { weekday: "short" }));
+  const rows = [1, 2, 3, 4, 5, 6, 7, 8].map(w => {
+    const p = phaseOf(w);
+    return `<tr><th style="border-left-color:${PHASES[p].color}"><b>Week ${w}</b><small>${esc(fmt(dateOf(w, 0), { month: "short", day: "numeric" }))}${w === 8 ? " · taper" : ""}</small></th>${
+      TYPES.map((t, d) => {
+        const s = session(w, d);
+        return `<td><button class="cell${isToday(w, d) ? " is-today" : ""}${S.done[k(w, d)] ? " is-done" : ""}${t === "rest" ? " rest" : ""}" data-goto="${w}-${d}">
+          <span class="ct">${eff(s.eff)}${esc(s.meta.s)}</span><span class="cd">${esc(fmt(dateOf(w, d), { month: "numeric", day: "numeric" }))}</span></button></td>`;
+      }).join("")}</tr>`;
+  }).join("");
+  const total = Object.keys(S.done).filter(x => S.done[x]).length;
+  document.getElementById("view").innerHTML = `
+    <div class="plan-top">
+      <div class="legend"><span>${eff("green")}Easy</span><span>${eff("blue")}Moderate</span><span>${eff("black")}Hard</span></div>
+      <span class="pill mono">${total} of 48 sessions complete</span>
+    </div>
+    <div class="scroll-x"><table class="grid"><thead><tr><th></th>${wk1.map(x => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="phase-cards">${[1, 2, 3].map(n => `
+      <div class="card" style="border-top-color:${PHASES[n].color}">
+        <span class="label">${PHASES[n].weeks}</span><h3>${PHASES[n].n}</h3><p>${esc(PHASES[n].goal)}</p>
+        <ul>${PHASES[n].notes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+      </div>`).join("")}
+    </div>`;
+}
+
+function renderLibrary() {
+  const ids = Object.keys(EX).filter(id => libFilter === "all" || EX[id].j === libFilter);
+  document.getElementById("view").innerHTML = `
+    <div class="chips" role="group" aria-label="Filter by area">
+      ${[["all", "All"], ...Object.entries(JOINTS)].map(([v, l]) => `<button class="chip" data-filter="${v}" aria-pressed="${libFilter === v}">${esc(l)}</button>`).join("")}
+    </div>
+    <div class="lib">${ids.map(id => `
+      <article class="card">
+        <span class="tag">${esc(JOINTS[EX[id].j])}</span>
+        <h3>${esc(EX[id].n)}</h3>
+        <p class="cue">${esc(EX[id].cue)}</p>
+        <p class="wy">${esc(EX[id].why)}</p>
+        <a href="${demo(id)}" target="_blank" rel="noopener">Watch a demo ↗</a>
+      </article>`).join("")}
+    </div>`;
+}
+
+function tv(id, col) { const v = (S.tests[id] || {})[col]; return v === undefined || v === null ? "" : v; }
+function lsi(id, col) {
+  const l = parseFloat(tv(id + "_L", col)), r = parseFloat(tv(id + "_R", col));
+  if (!(l > 0) || !(r > 0)) return "";
+  const v = Math.round((Math.min(l, r) / Math.max(l, r)) * 100);
+  return `<span class="${v >= 90 ? "ok" : "low"}">${v}%</span>`;
+}
+function renderTests() {
+  const inp = (id, col, label) => `<td><input type="number" inputmode="decimal" min="0" step="any" id="t-${id}-${col}" data-test="${id}" data-col="${col}" value="${esc(tv(id, col))}" aria-label="${esc(label)}"></td>`;
+  const rows = TESTS.map(t => {
+    const head = `<th class="tname">${esc(t.n)} <span class="mono" style="font-weight:400;color:var(--muted)">(${t.unit})</span><span class="thow">${esc(t.how)}</span></th>`;
+    if (!t.bi) return `<tr class="grp">${head}<td class="side"></td><td class="target">${esc(t.target)}</td>${TCOLS.map(([c, l]) => inp(t.id, c, t.n + " " + l)).join("")}</tr>`;
+    return `<tr class="grp">${head}<td class="side">Left</td><td class="target">${esc(t.target)}</td>${TCOLS.map(([c, l]) => inp(t.id + "_L", c, t.n + " left " + l)).join("")}</tr>
+      <tr><td></td><td class="side">Right</td><td></td>${TCOLS.map(([c, l]) => inp(t.id + "_R", c, t.n + " right " + l)).join("")}</tr>
+      <tr class="lsi"><td></td><td class="side">LSI</td><td></td>${TCOLS.map(([c]) => `<td data-lsi="${t.id}-${c}">${lsi(t.id, c)}</td>`).join("")}</tr>`;
+  }).join("");
+  document.getElementById("view").innerHTML = `
+    <p class="intro">Test before Week 1, after Week 4 and after Week 8, warmed up and fresh. LSI (limb symmetry index) is the weaker side as a percentage of the stronger side. Under 90% points to the side that needs extra single-leg work, and it's one of the clearest knee injury risk markers.</p>
+    <div class="scroll-x"><table class="tests">
+      <thead><tr><th>Test</th><th></th><th>Target</th>${TCOLS.map(([, l]) => `<th>${l}</th>`).join("")}</tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+}
+
+function renderSeason() {
+  const pp = pos();
+  const inPrep = !pp.post;
+  const end = dateOf(8, 6);
+  const mcard = m => `<div class="card"><h4>${esc(m.t)}</h4>${m.items.map(([id, dose]) => `<div class="mrow"><span>${esc(EX[id].n)}</span><span>${esc(dose)}</span></div>`).join("")}</div>`;
+  document.getElementById("view").innerHTML = `
+  <div class="season">
+    <ol class="tl">
+      <li class="${inPrep ? "now" : ""}"><span class="when">${esc(fmt(parseD(S.start), { month: "short", day: "numeric" }))} – ${esc(fmt(end, { month: "short", day: "numeric" }))}</span>
+        <h3>Ski prep</h3><p>This 8-week program: Foundation, Strength, then Power with a taper in the final week.</p></li>
+      <li class="${!inPrep ? "now" : ""}"><span class="when">Ski season · through March</span>
+        <h3>In-season maintenance</h3>
+        <p>Two 30-minute sessions a week keep the strength and tendon stiffness you built. Skip a session after a big ski day and never do Maintenance A the day before you ski.</p>
+        <div class="maint">${mcard(MAINT.A)}${mcard(MAINT.B)}</div></li>
+      <li><span class="when">April – May</span><h3>Football off-season strength</h3>
+        <ul><li>Heavy lower body 3× a week, same lifts as Phase 2</li><li>Nordics and Copenhagens stay in every week. Together they cut hamstring and groin injuries sharply</li><li>Start acceleration work: 10–20 m sprints, full recovery</li></ul></li>
+      <li><span class="when">June – July</span><h3>Speed &amp; change of direction</h3>
+        <ul><li>Max-velocity sprints at 30–40 m</li><li>Cutting drills: 5-10-5 shuttle, 45° and 90° cuts, deceleration practice</li><li>Plyos progress to single-leg bounds and hurdle hops</li><li>Position-specific conditioning</li></ul></li>
+      <li><span class="when">August</span><h3>Preseason</h3>
+        <ul><li>Gym drops to 2× a week, short and heavy</li><li>Keep the Primer as your pre-practice warm-up</li><li>Pogos and Nordics weekly through the season</li></ul></li>
+    </ol>
+    <aside>
+      <div class="card">
+        <h3>Your dates</h3>
+        <div class="field"><label for="d-start">Program start</label><input type="date" id="d-start" value="${esc(S.start)}"><small>Week 1 begins on this day. A Monday works best.</small></div>
+        <div class="field"><label for="d-ski">First ski day</label><input type="date" id="d-ski" value="${esc(S.ski)}"><small>Drives the countdown. Ideally the week after Week 8 ends.</small></div>
+      </div>
+      <div class="card">
+        <h3>What you need</h3>
+        <ul class="rules">
+          <li><span>A step or box (20–30 cm) and a bench</span></li>
+          <li><span>A heavy loop band and a mini band</span></li>
+          <li><span>Dumbbells or kettlebell; trap bar if you have a gym</span></li>
+          <li><span>A wall and something to anchor your heels for Nordics</span></li>
+        </ul>
+      </div>
+      <p class="fine">General training guidance, not medical advice. Sharp pain, swelling, or pain that gets worse session to session means stop and see a physio or sports doctor.</p>
+    </aside>
+  </div>`;
+}
+
+function renderView() {
+  renderTabs();
+  ({ session: renderSession, plan: renderPlan, library: renderLibrary, tests: renderTests, season: renderSeason })[view]();
+}
+function renderAll() { renderMast(); renderView(); }
+
+/* ---------- Events ---------- */
+function go(v) { view = v; try { localStorage.setItem(KEY + ":view", v); } catch (e) {} renderView(); }
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-view],[data-goto],[data-day],[data-week],[data-tick],[data-complete],[data-filter]");
+  if (!t) return;
+  if (t.dataset.view) return go(t.dataset.view);
+  if (t.dataset.goto) { const [w, d] = t.dataset.goto.split("-").map(Number); sel = { w, d }; go("session"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  if (t.dataset.day !== undefined) { sel.d = Number(t.dataset.day); return renderSession(); }
+  if (t.dataset.week) { sel.w = Math.min(8, Math.max(1, sel.w + Number(t.dataset.week))); return renderSession(); }
+  if (t.dataset.filter) { libFilter = t.dataset.filter; return renderLibrary(); }
+  if (t.dataset.tick) {
+    const key = k(sel.w, sel.d), c = S.checks[key] = S.checks[key] || {};
+    const on = !c[t.dataset.tick];
+    if (on) c[t.dataset.tick] = true; else delete c[t.dataset.tick];
+    t.setAttribute("aria-pressed", on);
+    t.closest(".ex").classList.toggle("is-done", on);
+    const total = document.querySelectorAll(".ex").length, ticked = Object.keys(c).length;
+    document.getElementById("tickcount").textContent = ticked + "/" + total + " done";
+    if (ticked === total && !S.done[key]) { S.done[key] = new Date().toISOString().slice(0, 10); persist(); renderAll(); return; }
+    persist();
+    return;
+  }
+  if (t.hasAttribute("data-complete")) {
+    const key = k(sel.w, sel.d);
+    if (S.done[key]) delete S.done[key]; else S.done[key] = new Date().toISOString().slice(0, 10);
+    persist(); renderAll();
+  }
+});
+document.addEventListener("input", e => {
+  if (e.target.id === "pain") {
+    const v = Number(e.target.value);
+    document.getElementById("painout").textContent = v + "/10";
+    const m = document.getElementById("painmsg"); m.textContent = painMsg(v); m.classList.toggle("warn", v > 3);
+  }
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.id === "pain") { S.pain[k(sel.w, sel.d)] = Number(el.value); persist(); return; }
+  if (el.dataset.test) {
+    const id = el.dataset.test, col = el.dataset.col;
+    S.tests[id] = S.tests[id] || {};
+    if (el.value === "") delete S.tests[id][col]; else S.tests[id][col] = Number(el.value);
+    persist();
+    const base = id.replace(/_[LR]$/, "");
+    const cell = document.querySelector(`[data-lsi="${base}-${col}"]`);
+    if (cell) cell.innerHTML = lsi(base, col);
+    return;
+  }
+  if ((el.id === "d-start" || el.id === "d-ski") && /^\d{4}-\d{2}-\d{2}$/.test(el.value)) {
+    S[el.id === "d-start" ? "start" : "ski"] = el.value;
+    const p = pos(); sel = { w: p.w, d: p.d };
+    persist(); renderMast();
+  }
+});
+
+renderAll();
+</script>
