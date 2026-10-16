@@ -141,6 +141,9 @@ ol.exs { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--li
 .ex-right { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .swap { font-size: 12px; font-weight: 600; color: var(--blue); border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; margin-left: 4px; white-space: nowrap; vertical-align: 2px; }
 .lb { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); font-family: var(--mono); }
+.lb .plus { color: var(--ink); }
+.lb .plan { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.lb input.is-set { border-color: var(--accent); }
 .lb input { width: 72px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 14px; }
 .dose { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--ink); background: var(--sunk); padding: 1px 8px; border-radius: 4px; white-space: nowrap; }
 .cue { color: var(--muted); font-size: 15px; margin-top: 3px; max-width: 70ch; }
@@ -489,14 +492,14 @@ function session(w, d) {
 
 /* ---------- State ---------- */
 const KEY = "fall-line:v1";
-const DEFAULTS = { ver: 4, start: "2026-10-17", ski: "2026-12-04", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, shinOk: false };
+const DEFAULTS = { ver: 4, start: "2026-10-17", ski: "2026-12-04", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, wt: {}, shinOk: false };
 const normalize = o => {
   const n = Object.assign(clone(DEFAULTS), o), v = o.ver || 1;
   if (v < 2) n.checks = {};
   /* v3 moved the start to Sat Oct 17, so week/day keys from the old calendar no longer line up */
   if (v < 3) { n.start = DEFAULTS.start; n.checks = {}; n.done = {}; n.pain = {}; n.logs = {}; }
   if (v < 4 && n.ski === "2026-12-12") n.ski = DEFAULTS.ski;
-  n.ver = 4;
+  n.ver = 5;
   return n;
 };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -622,7 +625,7 @@ function renderSession() {
         return `<li class="ex${on ? " is-done" : ""}">
           <button class="tick" data-tick="${ck}" aria-pressed="${on}" aria-label="Mark ${esc(e.n)} done">${CHECK}</button>
           <div>
-            <div class="ex-top"><span class="ex-name">${esc(e.n)}${it.swap ? ' <span class="swap">Shin-safe swap</span>' : ""}</span><span class="ex-right"><span class="dose">${esc(it.dose)}</span>${LOADED.has(it.id) ? lbInput(key, ck, it.id, e.n) : ""}</span></div>
+            <div class="ex-top"><span class="ex-name">${esc(e.n)}${it.swap ? ' <span class="swap">Shin-safe swap</span>' : ""}</span><span class="ex-right"><span class="dose">${esc(LOADED.has(it.id) ? it.dose.replace(LB_RE, "") : it.dose)}</span>${LOADED.has(it.id) ? lbInput(key, ck, it.id, e.n, it.dose) : ""}</span></div>
             <p class="cue">${esc(e.cue)}</p>
             <details class="why"><summary>Why it's here</summary><p>${esc(e.why)}</p><a href="${demo(it.id)}" target="_blank" rel="noopener">Watch a demo ↗</a></details>
           </div></li>`;
@@ -702,10 +705,25 @@ function renderSession() {
     </aside>
   </div>`;
 }
-function lbInput(key, ck, id, name) {
-  const v = ((S.logs[key] || {})[ck]);
-  const last = S.last[id];
-  return `<label class="lb" title="Weight used"><input type="number" inputmode="decimal" min="0" step="any" id="lb-${key}-${ck}" data-lb="${ck}" data-ex="${id}" value="${v ?? ""}" placeholder="${last ?? ""}" aria-label="Weight used for ${esc(name)}, pounds"><span>lb</span></label>`;
+/* Working weights: a weight set on a session applies to that session and every later one until changed again */
+const LB_RE = /\s*·\s*(\+?)(\d+(?:\.\d+)?)(?:–\d+(?:\.\d+)?)?\s*lb/;
+const planWt = dose => { const m = dose.match(LB_RE); return m ? { plus: m[1] === "+", v: Number(m[2]) } : null; };
+const order = key => { const [w, d] = key.split("-").map(Number); return (w - 1) * 7 + d; };
+function weightFor(id, key, plan) {
+  const log = S.wt[id] || {};
+  if (log[key] != null) return { v: log[key], src: "set" };
+  const cur = order(key);
+  let best = -1, bv = null;
+  for (const kk in log) { const i = order(kk); if (i < cur && i > best) { best = i; bv = log[kk]; } }
+  if (bv != null) return { v: bv, src: "carried" };
+  if (plan) return { v: plan.v, src: "plan" };
+  if (S.last[id] != null) return { v: S.last[id], src: "carried" };
+  return { v: null, src: "none" };
+}
+function lbInput(key, ck, id, name, dose) {
+  const plan = planWt(dose), w = weightFor(id, key, plan);
+  const hint = plan && w.src !== "plan" && w.v !== plan.v ? `<span class="plan">plan ${plan.v}</span>` : "";
+  return `<label class="lb" title="Working weight. Changes carry forward to later weeks.">${plan && plan.plus ? '<span class="plus">+</span>' : ""}<input type="number" inputmode="decimal" min="0" step="any" id="lb-${key}-${ck}" class="${w.src === "set" ? "is-set" : ""}" data-lb="${ck}" data-ex="${id}" value="${w.v ?? ""}" placeholder="—" aria-label="Working weight for ${esc(name)}, pounds${plan && plan.plus ? " added" : ""}"><span>lb</span>${hint}</label>`;
 }
 function painMsg(v) {
   v = Number(v);
@@ -869,9 +887,10 @@ document.addEventListener("change", e => {
   const el = e.target;
   if (el.id === "pain") { S.pain[k(sel.w, sel.d)] = Number(el.value); persist(); return; }
   if (el.dataset.lb) {
-    const key = k(sel.w, sel.d), logs = S.logs[key] = S.logs[key] || {};
-    if (el.value === "") delete logs[el.dataset.lb];
-    else { logs[el.dataset.lb] = Number(el.value); S.last[el.dataset.ex] = Number(el.value); }
+    const key = k(sel.w, sel.d), id = el.dataset.ex, log = S.wt[id] = S.wt[id] || {};
+    if (el.value === "") delete log[key];
+    else { log[key] = Number(el.value); S.last[id] = Number(el.value); }
+    el.classList.toggle("is-set", el.value !== "");
     persist();
     return;
   }
