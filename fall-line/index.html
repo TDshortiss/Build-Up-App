@@ -393,15 +393,16 @@ const ENGINE = {
   2: { name: "Ski engine", items: [["bike-int", ["6 × 90 s hard / 90 s easy", "6 × 2 min / 2 min", "5 × 2 min / 90 s"]], ["wallsit", ["3 × 90 s", "3 × 2 min, shift side to side", "3 × 2 min, shift side to side"]]] },
   3: { name: "Ski engine", note: ["4 rounds, straight from bike to wall", "2 rounds"], items: [["bike-int", "60 s hard"], ["wallsit", ["60 s", "45 s"]]] }
 };
+/* Session order: jumps while fresh, heaviest compound lift, other compounds, single-leg work, isolation, calves and tendon, core, mobility last */
 const PULL = { name: "Pull", note: SPLIT, items: [["pullup", "3 × 6 · +45 lb"], ["close-row", "2 × 8 · 115 lb"], ["cs-row", "2 × 6 · 100 lb"], ["rear-delt", "2 × 8 · 95 lb"], ["hammer", "3 × 8 · 30 lb"], ["preacher", "3 × 6 · 40 lb"], ["forearm-curl", "2 × 6 · 42.5 lb"]] };
 
 const TPL = {
   upper: { 1: [
-    { name: "Upper", note: SPLIT, items: [["incline", "3 × 6 · 115 lb"], ["cable-fly", "2 × 10 · 120 lb"], ["pullup", "3 × max · +35 lb"], ["pendlay", "2 × 6 · 125 lb"], ["lat-raise", "2 × 8 · 15 lb"], ["oh-ext", "2 × 8 · 57.5 lb"], ["bayesian", "2 × 8 · 30 lb"], ["wrist-curl", "2 × 16 · 80 lb"]] },
-    { name: "Shin & ankle add-on", note: "8 min", items: [["tibraise", ["2 × 15", "2 × 20", "2 × 20, +load"]], ["sl-balance", ["2 × 30 s / side", "2 × 30 s / side, eyes closed", "2 × 30 s / side, on cushion"]], ["ankle-cars", "5 each way"]] }] },
+    { name: "Upper", note: SPLIT, items: [["incline", "3 × 6 · 115 lb"], ["pullup", "3 × max · +35 lb"], ["pendlay", "2 × 6 · 125 lb"], ["cable-fly", "2 × 10 · 120 lb"], ["lat-raise", "2 × 8 · 15 lb"], ["oh-ext", "2 × 8 · 57.5 lb"], ["bayesian", "2 × 8 · 30 lb"], ["wrist-curl", "2 × 16 · 80 lb"]] },
+    { name: "Shin & ankle add-on", note: "8 min", items: [["ankle-cars", "5 each way"], ["sl-balance", ["2 × 30 s / side", "2 × 30 s / side, eyes closed", "2 × 30 s / side, on cushion"]], ["tibraise", ["2 × 15", "2 × 20", "2 × 20, +load"]]] }] },
   push: { 1: [
-    { name: "Push", note: SPLIT, items: [["pec-fly-low", "3 × 8 · 60 lb"], ["dips", "3 × max · +55 lb"], ["bench", "2 × 6 · 135–145 lb"], ["db-press", "3 × 6 · 45 lb"], ["sa-tri", "3 × 8 · 25 lb"]] },
-    { name: "Hips & trunk add-on", note: "10 min", items: [["pallof", "3 × 10 / side"], ["9090", "8 switches"], ["couch", "60 s / side"], ["sideplank", "2 × 30 s / side, leg lift"]] }] },
+    { name: "Push", note: SPLIT, items: [["bench", "2 × 6 · 135–145 lb"], ["dips", "3 × max · +55 lb"], ["db-press", "3 × 6 · 45 lb"], ["pec-fly-low", "3 × 8 · 60 lb"], ["sa-tri", "3 × 8 · 25 lb"]] },
+    { name: "Hips & trunk add-on", note: "10 min", items: [["pallof", "3 × 10 / side"], ["sideplank", "2 × 30 s / side, leg lift"], ["9090", "8 switches"], ["couch", "60 s / side"]] }] },
   pull: { 1: [PULL, ENGINE[1]], 2: [PULL, ENGINE[2]], 3: [PULL, ENGINE[3]] },
   rehab: { 1: [
     { name: "Easy bike", items: [["z2", ["20 min", "25 min", "30 min"]]] },
@@ -412,32 +413,34 @@ const TPL = {
     { name: "Shin rehab", items: [["tibraise", "2 × 20, +load"], ["soleus", "3 × 15"]] },
     { name: "Mobility flow", items: [["worlds", "5 / side"], ["couch", "60 s / side"], ["cossack", "2 × 8 / side, hold 5 kg"], ["adductor-rock", "10 / side"], ["pigeon", "60 s / side"], ["kneewall", "2 × 10 / side"]] }] },
   lower: {
-    1: [{ name: "Main lifts", note: SPLIT, items: [["squat", ["3 × 6 · 165 lb", "3 × 6 · 170 lb", "3 × 6 · 175 lb"]], ["legcurl-lying", "2 × 6 · 145 lb"], ["hipthrust", ["2 × 6 · 215 lb", "2 × 6 · 225 lb", "3 × 6 · 225 lb"]]] },
+    1: [{ name: "Main lifts", note: SPLIT, items: [["squat", ["3 × 6 · 165 lb", "3 × 6 · 170 lb", "3 × 6 · 175 lb"]], ["hipthrust", ["2 × 6 · 215 lb", "2 × 6 · 225 lb", "3 × 6 · 225 lb"]], ["legcurl-lying", "2 × 6 · 145 lb"]] },
         { name: "Calves & shins", items: [["calf-raise-heavy", ["2 × 8 · 350 lb · 3-0-3", "3 × 8 · 350 lb · 3-0-3", "3 × 8 · 360 lb · 3-0-3"]], ["tibraise", ["3 × 15", "3 × 20", "3 × 20, +load"]]] },
-        { name: "Hips & core", items: [["abductor", "2 × 15 · max"], ["copenhagen", ["2 × 20 s / side, knee", "2 × 25 s / side, knee", "2 × 25 s / side, foot"]], ["hanging-lr", "3 × 8"]] }],
+        { name: "Hips & core", items: [["copenhagen", ["2 × 20 s / side, knee", "2 × 25 s / side, knee", "2 × 25 s / side, foot"]], ["abductor", "2 × 15 · max"], ["hanging-lr", "3 × 8"]] }],
     2: [{ name: "Elastic", note: "only after the shin check", items: [["pogo", ["3 × 15, low", "3 × 20", "3 × 20, higher"]], ["latline", ["2 × 15 s", "3 × 15 s", "3 × 20 s"]]] },
-        { name: "Main lifts", items: [["squat", ["4 × 5 · 185 lb", "4 × 5 · 190 lb", "5 × 3 · 200 lb"]], ["split", ["3 × 6 / side, DBs", "3 × 6 / side, +load", "3 × 5 / side, heavier"]], ["legcurl-lying", "2 × 6 · 150 lb"], ["hipthrust", "3 × 6 · 235 lb"]] },
+        { name: "Main lifts", items: [["squat", ["4 × 5 · 185 lb", "4 × 5 · 190 lb", "5 × 3 · 200 lb"]], ["split", ["3 × 6 / side, DBs", "3 × 6 / side, +load", "3 × 5 / side, heavier"]], ["hipthrust", "3 × 6 · 235 lb"], ["legcurl-lying", "2 × 6 · 150 lb"]] },
         { name: "Calves & shins", items: [["calf-raise-heavy", ["3 × 8 · 360 lb · 3-0-3", "3 × 6 · 380 lb · 3-0-3", "3 × 6 · 390 lb · 3-0-3"]], ["tibraise", "2 × 20, +load"]] },
-        { name: "Hips & core", items: [["abductor", "2 × 15 · max"], ["copenhagen", ["3 × 25 s / side, foot", "3 × 30 s / side", "3 × 30 s / side"]], ["hanging-lr", "3 × 10"]] }],
-    3: [{ name: "Contrast pairs", note: "1 squat set, rest 30 s, then the jumps", items: [["squat", ["4 × 3 · 185 lb, fast up", "3 × 2 · 175 lb"]], ["broad", ["4 × 3, stick each", "3 × 3"]]] },
-        { name: "Reactive", items: [["drop-jump", ["3 × 4 from 30 cm", "2 × 4"]]] },
+        { name: "Hips & core", items: [["copenhagen", ["3 × 25 s / side, foot", "3 × 30 s / side", "3 × 30 s / side"]], ["abductor", "2 × 15 · max"], ["hanging-lr", "3 × 10"]] }],
+    3: [{ name: "Reactive", items: [["drop-jump", ["3 × 4 from 30 cm", "2 × 4"]]] },
+        { name: "Contrast pairs", note: "1 squat set, rest 30 s, then the jumps", items: [["squat", ["4 × 3 · 185 lb, fast up", "3 × 2 · 175 lb"]], ["broad", ["4 × 3, stick each", "3 × 3"]]] },
         { name: "Main lifts", items: [["split", ["3 × 5 / side", "2 × 5 / side"]], ["hipthrust", ["3 × 5 · explosive", "2 × 5"]]] },
         { name: "Calves & core", items: [["calf-raise-heavy", ["3 × 6 · 3-0-3", "2 × 6"]], ["copenhagen", ["2 × 30 s / side", "2 × 20 s / side"]], ["hanging-lr", ["3 × 8", "2 × 8"]]] }]
   },
   legs: {
-    1: [{ name: "Main lifts", note: SPLIT, items: [["legcurl-seated", "2 × 8 · 195 lb"], ["leg-ext", "2 × 8 · 240 lb"], ["rdl", ["3 × 8 · 275 lb", "3 × 8 · 280 lb", "3 × 8 · 285 lb"]]] },
+    1: [{ name: "Main lift", note: SPLIT, items: [["rdl", ["3 × 8 · 275 lb", "3 × 8 · 280 lb", "3 × 8 · 285 lb"]]] },
         { name: "Single-leg & lateral", items: [["lateral-lunge", ["2 × 8 / side", "3 × 8 / side", "3 × 8 / side, +load"]], ["stepdown", ["2 × 10 / side", "3 × 10 / side", "3 × 10 / side, hold a plate"]]] },
+        { name: "Isolation", items: [["legcurl-seated", "2 × 8 · 195 lb"], ["leg-ext", "2 × 8 · 240 lb"], ["abductor", "2 × 15 · max"]] },
         { name: "Calves", items: [["calf-explosive", "2 × 8 · 290 lb, controlled"], ["soleus", ["3 × 12", "3 × 15", "3 × 15, +load"]]] },
-        { name: "Core", items: [["abductor", "2 × 15 · max"], ["ab-crunch", "2 × 10 · 80 lb"], ["rotation", "2 × 10 · 130 lb"]] }],
+        { name: "Core", items: [["rotation", "2 × 10 · 130 lb"], ["ab-crunch", "2 × 10 · 80 lb"]] }],
     2: [{ name: "Elastic", note: "only after the shin check", items: [["sl-pogo", ["3 × 8 / side", "3 × 10 / side", "4 × 10 / side"]], ["skater", ["3 × 4 / side, stick 2 s", "3 × 5 / side, stick", "3 × 6 / side, stick"]]] },
-        { name: "Main lifts", items: [["rdl", ["3 × 6 · 290 lb", "3 × 6 · 300 lb", "3 × 5 · 310 lb"]], ["legcurl-seated", "2 × 8 · 200 lb"], ["leg-ext", "2 × 8 · 240 lb, explosive"]] },
+        { name: "Main lift", items: [["rdl", ["3 × 6 · 290 lb", "3 × 6 · 300 lb", "3 × 5 · 310 lb"]]] },
         { name: "Single-leg & lateral", items: [["lateral-lunge", ["3 × 6 / side, loaded", "3 × 6 / side, +load", "3 × 5 / side, heavier"]], ["stepdown", "3 × 10 / side, hold a plate"]] },
-        { name: "Calves & core", items: [["calf-explosive", "2 × 8 · 290 lb, explosive"], ["soleus", "3 × 12, heavy"], ["ab-crunch", "2 × 10 · 80 lb"], ["rotation", "2 × 10 · 130 lb"]] }],
-    3: [{ name: "Reactive", items: [["sl-pogo", ["4 × 10 / side", "2 × 10 / side"]], ["skater", ["4 × 6 / side, continuous", "2 × 6 / side"]], ["latbox", ["4 × 20 s", "2 × 20 s"]], ["squat-jump", ["3 × 5", "2 × 4"]]] },
+        { name: "Isolation", items: [["legcurl-seated", "2 × 8 · 200 lb"], ["leg-ext", "2 × 8 · 240 lb, explosive"]] },
+        { name: "Calves & core", items: [["calf-explosive", "2 × 8 · 290 lb, explosive"], ["soleus", "3 × 12, heavy"], ["rotation", "2 × 10 · 130 lb"], ["ab-crunch", "2 × 10 · 80 lb"]] }],
+    3: [{ name: "Reactive", note: "most explosive first", items: [["squat-jump", ["3 × 5", "2 × 4"]], ["skater", ["4 × 6 / side, continuous", "2 × 6 / side"]], ["sl-pogo", ["4 × 10 / side", "2 × 10 / side"]], ["latbox", ["4 × 20 s", "2 × 20 s"]]] },
         { name: "Main lifts", items: [["rdl", ["3 × 5 · 300 lb", "2 × 5 · 275 lb"]], ["lateral-lunge", ["3 × 5 / side, fast up", "2 × 5 / side"]], ["leg-ext", ["2 × 8, explosive", "1 × 8"]]] },
         { name: "Calves & core", items: [["calf-explosive", ["2 × 8, explosive", "2 × 6"]], ["rotation", "2 × 10"]] }]
   },
-  activate: { 1: [PRIMER, { name: "Wake up", items: [["pogo", "2 × 10, low & easy"], ["wallsit", "2 × 30 s"], ["sl-balance", "2 × 30 s / side"]] }, { name: "Loosen", items: [["couch", "60 s / side"], ["deep-squat", "2 × 45 s"]] }] },
+  activate: { 1: [PRIMER, { name: "Wake up", items: [["pogo", "2 × 10, low & easy"], ["sl-balance", "2 × 30 s / side"], ["wallsit", "2 × 30 s"]] }, { name: "Loosen", items: [["couch", "60 s / side"], ["deep-squat", "2 × 45 s"]] }] },
   rest: { 1: [{ name: "Recovery", items: [["walk", "30–45 min"], ["couch", "optional · 60 s / side"], ["9090", "optional · 8 switches"]] }] }
 };
 
@@ -492,14 +495,16 @@ function session(w, d) {
 
 /* ---------- State ---------- */
 const KEY = "fall-line:v1";
-const DEFAULTS = { ver: 4, start: "2026-10-17", ski: "2026-12-04", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, wt: {}, shinOk: false };
+const DEFAULTS = { ver: 6, start: "2026-10-17", ski: "2026-12-04", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, wt: {}, shinOk: false };
 const normalize = o => {
   const n = Object.assign(clone(DEFAULTS), o), v = o.ver || 1;
   if (v < 2) n.checks = {};
   /* v3 moved the start to Sat Oct 17, so week/day keys from the old calendar no longer line up */
   if (v < 3) { n.start = DEFAULTS.start; n.checks = {}; n.done = {}; n.pain = {}; n.logs = {}; }
   if (v < 4 && n.ski === "2026-12-12") n.ski = DEFAULTS.ski;
-  n.ver = 5;
+  /* v6 reordered exercises, so ticks stored by position no longer match */
+  if (v < 6) n.checks = {};
+  n.ver = 6;
   return n;
 };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -696,6 +701,7 @@ function renderSession() {
           <li><b>Pain rule: 3/10 or less</b><span>Some tendon discomfort is fine if it settles by the next morning. Above that, repeat last week's dose instead of progressing.</span></li>
           <li><b>48 hours between tendon days</b><span>Calves and Achilles are loaded hard on Lower and Legs days, with only light shin work in between.</span></li>
           <li><b>Shin red flags</b><span>Pain in one small spot on the bone, pain at night, or pain that gets worse each session can mean a stress fracture. Stop impact and see a doctor.</span></li>
+          <li><b>Exercise order</b><span>Jumps first while you're fresh, then the heaviest lift, single-leg work, isolation, calves, and core last.</span></li>
           <li><b>Tempo 3-1-1</b><span>3 s lowering, 1 s pause, 1 s up.</span></li>
           <li><b>RPE 7–9</b><span>Effort out of 10. RPE 8 means about 2 reps left. Pick loads by RPE rather than old maxes, especially in season.</span></li>
           <li><b>Rest</b><span>Strength sets 2 min. Jumps 60–90 s, so every rep is fast. Holds 60 s.</span></li>
