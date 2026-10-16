@@ -485,8 +485,15 @@ function session(w, d) {
 
 /* ---------- State ---------- */
 const KEY = "fall-line:v1";
-const DEFAULTS = { ver: 2, start: "2026-10-12", ski: "2026-12-12", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, shinOk: false };
-const normalize = o => { const n = Object.assign(clone(DEFAULTS), o); if (o.ver !== 2) { n.checks = {}; n.ver = 2; } return n; };
+const DEFAULTS = { ver: 3, start: "2026-10-17", ski: "2026-12-12", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, shinOk: false };
+const normalize = o => {
+  const n = Object.assign(clone(DEFAULTS), o), v = o.ver || 1;
+  if (v < 2) n.checks = {};
+  /* v3 moved the start to Sat Oct 17, so week/day keys from the old calendar no longer line up */
+  if (v < 3) { n.start = DEFAULTS.start; n.checks = {}; n.done = {}; n.pain = {}; n.logs = {}; }
+  n.ver = 3;
+  return n;
+};
 const clone = o => JSON.parse(JSON.stringify(o));
 let S = (() => { try { const r = localStorage.getItem(KEY); if (r) return normalize(JSON.parse(r)); } catch (e) {} return clone(DEFAULTS); })();
 let view = (() => { const h = (location.hash || "").slice(1); if (["session", "plan", "library", "tests", "season"].includes(h)) return h; try { return localStorage.getItem(KEY + ":view") || "session"; } catch (e) { return "session"; } })();
@@ -679,7 +686,7 @@ function renderSession() {
         <h3>Ground rules</h3>
         <ul class="rules">
           <li><b>Pain rule: 3/10 or less</b><span>Some tendon discomfort is fine if it settles by the next morning. Above that, repeat last week's dose instead of progressing.</span></li>
-          <li><b>48 hours between tendon days</b><span>Calves and Achilles are loaded hard Tuesday and Saturday, with only light shin work in between.</span></li>
+          <li><b>48 hours between tendon days</b><span>Calves and Achilles are loaded hard on Lower and Legs days, with only light shin work in between.</span></li>
           <li><b>Shin red flags</b><span>Pain in one small spot on the bone, pain at night, or pain that gets worse each session can mean a stress fracture. Stop impact and see a doctor.</span></li>
           <li><b>Tempo 3-1-1</b><span>3 s lowering, 1 s pause, 1 s up.</span></li>
           <li><b>RPE 7–9</b><span>Effort out of 10. RPE 8 means about 2 reps left. Pick loads by RPE rather than old maxes, especially in season.</span></li>
@@ -793,7 +800,7 @@ function renderSeason() {
     <aside>
       <div class="card">
         <h3>Your dates</h3>
-        <div class="field"><label for="d-start">Program start</label><input type="date" id="d-start" value="${esc(S.start)}"><small>Week 1 begins on this day. A Monday works best.</small></div>
+        <div class="field"><label for="d-start">Program start</label><input type="date" id="d-start" value="${esc(S.start)}"><small>Week 1 begins on this day, and each week runs Upper, Lower, Rehab, Push, Pull, Legs, Rest from there.</small></div>
         <div class="field"><label for="d-ski">First ski day</label><input type="date" id="d-ski" value="${esc(S.ski)}"><small>Drives the countdown. Ideally the week after Week 8 ends.</small></div>
       </div>
       <div class="card">
