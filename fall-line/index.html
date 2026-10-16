@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap">
 <style>
-/* Layout: app shell. Masthead with countdown and 8-week load profile, segmented nav, then a two-column session view (workout + sidebar) that stacks on phones. Effort uses trail-map symbols: green circle, blue square, black diamond. */
+/* Layout: app shell. Masthead with countdown and 7-week load profile, segmented nav, then a two-column session view (workout + sidebar) that stacks on phones. Effort uses trail-map symbols: green circle, blue square, black diamond. */
 :root {
   --bg: #F2F4F5;
   --surface: #FFFFFF;
@@ -75,7 +75,7 @@ button { font: inherit; color: inherit; }
 @media (max-width: 720px) { .mast { grid-template-columns: 1fr; } .count .big { font-size: 52px; } }
 
 /* Load profile */
-.profile { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding-block: 18px 6px; }
+.profile { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding-block: 18px 6px; }
 .wk { display: flex; flex-direction: column; gap: 6px; align-items: stretch; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
 .wk .bar-track { height: 54px; display: flex; align-items: flex-end; border-bottom: 1px solid var(--line); }
 .wk .bar { width: 100%; border-radius: 4px 4px 0 0; transition: filter .15s; }
@@ -84,7 +84,7 @@ button { font: inherit; color: inherit; }
 .wk.now .wl { color: var(--ink); font-weight: 500; }
 .wk.now .bar-track { border-bottom: 2px solid var(--ink); }
 .wk .chk { color: var(--green); }
-.phases { display: grid; grid-template-columns: 3fr 3fr 2fr; gap: 6px; }
+.phases { display: grid; grid-template-columns: 3fr 2fr 2fr; gap: 6px; }
 .phases div { font-size: 12px; color: var(--muted); border-top: 3px solid; padding-top: 4px; font-family: var(--display); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
 
 /* Nav */
@@ -260,14 +260,14 @@ table.tests { border-collapse: collapse; width: 100%; min-width: 680px; }
     <div class="count" id="count"></div>
   </header>
 
-  <section aria-label="Eight-week load profile">
+  <section aria-label="Seven-week load profile">
     <div class="profile" id="profile"></div>
     <div class="phases" id="phaseband"></div>
   </section>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-view="session" id="tab-session">Session</button>
-    <button role="tab" data-view="plan" id="tab-plan">8-Week Plan</button>
+    <button role="tab" data-view="plan" id="tab-plan">7-Week Plan</button>
     <button role="tab" data-view="library" id="tab-library">Exercises</button>
     <button role="tab" data-view="tests" id="tab-tests">Benchmarks</button>
     <button role="tab" data-view="season" id="tab-season">Season</button>
@@ -359,15 +359,17 @@ const LOADED = new Set(["squat", "split", "rdl", "hipthrust", "legcurl-lying", "
 /* ---------- Program ---------- */
 const PHASES = {
   1: { n: "Heal & Build", weeks: "Weeks 1–3", color: "var(--p1)", goal: "Let your shins heal while you keep lifting heavy. No running or jumping. All conditioning on the bike. Calf, soleus and shin work speed up recovery.", notes: ["No running or jumping until you pass the shin check", "Bike for all conditioning", "Calf raises slow and controlled, no bouncing"] },
-  2: { n: "Strength", weeks: "Weeks 4–6", color: "var(--p2)", goal: "Heavier legs, single-leg and lateral strength, and a gradual return to jumping once your shins pass the check.", notes: ["Jumps only after you pass the shin check", "Shin pain above 3/10: back to shin-safe swaps for a week", "Stick every landing for 2 s"] },
-  3: { n: "Power", weeks: "Weeks 7–8", color: "var(--p3)", goal: "Turn strength into explosiveness and ski endurance, then taper so you arrive fresh.", notes: ["Every rep fast, stop if contacts get slow", "Week 8 cuts leg volume about in half", "Arrive at the mountain fresh, not sore"] }
+  2: { n: "Strength", weeks: "Weeks 4–5", color: "var(--p2)", goal: "Heavier legs, single-leg and lateral strength, and a gradual return to jumping once your shins pass the check.", notes: ["Jumps only after you pass the shin check", "Shin pain above 3/10: back to shin-safe swaps for a week", "Stick every landing for 2 s"] },
+  3: { n: "Power", weeks: "Weeks 6–7", color: "var(--p3)", goal: "Turn strength into explosiveness and ski endurance, then taper so you arrive fresh.", notes: ["Every rep fast, stop if contacts get slow", "Week 7 cuts leg volume about in half", "Arrive at the mountain fresh, not sore"] }
 };
-const phaseOf = w => (w <= 3 ? 1 : w <= 6 ? 2 : 3);
-const wIn = w => (w <= 3 ? w - 1 : w <= 6 ? w - 4 : w - 7);
-const LOAD = [5, 5, 6, 7, 8, 8, 9, 5];
+const WEEKS = 7;
+const phaseOf = w => (w <= 3 ? 1 : w <= 5 ? 2 : 3);
+const wIn = w => (w <= 3 ? w - 1 : w <= 5 ? w - 4 : w - 6);
+const LOAD = [5, 5, 6, 7, 8, 9, 5];
 
 const TYPES = ["upper", "lower", "rehab", "push", "pull", "legs", "rest"];
-const typeFor = (w, d) => TYPES[d];
+/* The Legs day right before the first ski day becomes a light activation session */
+const typeFor = (w, d) => (w === WEEKS && d === 5 ? "activate" : TYPES[d]);
 const META = {
   upper: { t: "Upper", s: "Upper", min: 60, eff: ["blue"], focus: "Your Upper day, plus 8 minutes for shins and ankles." },
   lower: { t: "Lower", s: "Lower", min: 65, eff: ["black"], focus: "Your Lower day with ski and knee work added. Heavy calf work here builds Achilles stiffness." },
@@ -375,6 +377,7 @@ const META = {
   push: { t: "Push", s: "Push", min: 55, eff: ["blue"], focus: "Your Chest/Tri day, plus 10 minutes for hips and trunk." },
   pull: { t: "Pull + Ski Engine", s: "Pull", min: 70, eff: ["blue", "black", "black"], focus: "Your Back/Bi day, then bike intervals and wall sits for ski endurance. No impact on the shins." },
   legs: { t: "Legs", s: "Legs", min: 70, eff: ["black"], focus: "Your Legs day with single-leg and lateral work for skiing. Jumps start here once your shins are ready." },
+  activate: { t: "Pre-Ski Activation", s: "Activate", min: 20, eff: ["green"], focus: "The day before you ski. Wake the legs up, move well, then rest. No heavy lifting and nothing to failure." },
   rest: { t: "Rest Day", s: "Rest", min: 30, eff: ["green"], focus: "Recovery is when shins and tendons adapt. Walk, stretch lightly, sleep well." }
 };
 const EFF_LABEL = { green: "Easy", blue: "Moderate", black: "Hard" };
@@ -431,6 +434,7 @@ const TPL = {
         { name: "Main lifts", items: [["rdl", ["3 × 5 · 300 lb", "2 × 5 · 275 lb"]], ["lateral-lunge", ["3 × 5 / side, fast up", "2 × 5 / side"]], ["leg-ext", ["2 × 8, explosive", "1 × 8"]]] },
         { name: "Calves & core", items: [["calf-explosive", ["2 × 8, explosive", "2 × 6"]], ["rotation", "2 × 10"]] }]
   },
+  activate: { 1: [PRIMER, { name: "Wake up", items: [["pogo", "2 × 10, low & easy"], ["wallsit", "2 × 30 s"], ["sl-balance", "2 × 30 s / side"]] }, { name: "Loosen", items: [["couch", "60 s / side"], ["deep-squat", "2 × 45 s"]] }] },
   rest: { 1: [{ name: "Recovery", items: [["walk", "30–45 min"], ["couch", "optional · 60 s / side"], ["9090", "optional · 8 switches"]] }] }
 };
 
@@ -459,7 +463,7 @@ const TESTS = [
   { id: "broad", n: "Broad jump", unit: "cm", bi: false, target: "Trend up", how: "Two-foot takeoff and landing, stick it. Best of 3, measured to the heels." },
   { id: "wallsit", n: "Wall sit", unit: "s", bi: false, target: "≥ 120 s", how: "Thighs parallel, until form breaks." }
 ];
-const TCOLS = [["base", "Week 0"], ["mid", "End wk 4"], ["final", "End wk 8"]];
+const TCOLS = [["base", "Week 0"], ["mid", "End wk 3"], ["final", "End wk 6"]];
 
 const pick = (v, w) => (Array.isArray(v) ? v[Math.min(wIn(w), v.length - 1)] : v);
 
@@ -468,7 +472,7 @@ function session(w, d) {
   const tpl = TPL[type][p] || TPL[type][2] || TPL[type][1];
   const raw = (type === "lower" || type === "legs") ? [PRIMER, ...tpl] : tpl;
   let eff = meta.eff[Math.min(p, meta.eff.length) - 1];
-  const taper = w === 8;
+  const taper = w === WEEKS;
   if (taper && eff === "black") eff = "blue";
   let swapped = 0;
   const blocks = raw.map(b => ({
@@ -485,13 +489,14 @@ function session(w, d) {
 
 /* ---------- State ---------- */
 const KEY = "fall-line:v1";
-const DEFAULTS = { ver: 3, start: "2026-10-17", ski: "2026-12-12", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, shinOk: false };
+const DEFAULTS = { ver: 4, start: "2026-10-17", ski: "2026-12-04", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, shinOk: false };
 const normalize = o => {
   const n = Object.assign(clone(DEFAULTS), o), v = o.ver || 1;
   if (v < 2) n.checks = {};
   /* v3 moved the start to Sat Oct 17, so week/day keys from the old calendar no longer line up */
   if (v < 3) { n.start = DEFAULTS.start; n.checks = {}; n.done = {}; n.pain = {}; n.logs = {}; }
-  n.ver = 3;
+  if (v < 4 && n.ski === "2026-12-12") n.ski = DEFAULTS.ski;
+  n.ver = 4;
   return n;
 };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -508,7 +513,7 @@ const fmt = (dt, o) => dt.toLocaleDateString(undefined, o);
 function pos() {
   const o = Math.round((today() - parseD(S.start)) / DAY);
   if (o < 0) return { w: 1, d: 0, pre: true, o };
-  if (o >= 56) return { w: 8, d: 6, post: true, o };
+  if (o >= WEEKS * 7) return { w: WEEKS, d: 6, post: true, o };
   return { w: Math.floor(o / 7) + 1, d: o % 7, o };
 }
 const isToday = (w, d) => { const p = pos(); return !p.pre && !p.post && p.w === w && p.d === d; };
@@ -605,7 +610,7 @@ function renderSession() {
   }).join("");
   let banner = "";
   if (pp.pre && w === 1 && d === 0) banner = `<p class="banner">The program starts ${esc(fmt(parseD(S.start), { weekday: "long", month: "short", day: "numeric" }))}. Record your Week 0 benchmarks before then so you can see what changed.</p>`;
-  else if (pp.post) banner = `<p class="banner">You've finished the 8 weeks. Switch to the two maintenance sessions in the Season tab while you're skiing.</p>`;
+  else if (pp.post) banner = `<p class="banner">You've finished the program. Switch to the two maintenance sessions in the Season tab while you're skiing.</p>`;
   else if (s.taper && ["lower", "legs", "pull"].includes(s.type)) banner = `<p class="banner">Taper week. Leg and conditioning volume is cut roughly in half. Keep the reps sharp and finish feeling fresher than you started.</p>`;
   else if (s.swapped) banner = `<p class="banner">Shin-safe swaps are on. ${s.swapped} jumping ${s.swapped === 1 ? "exercise is" : "exercises are"} replaced until you pass the shin check in the sidebar.</p>`;
 
@@ -635,7 +640,7 @@ function renderSession() {
         <div class="stepper">
           <button data-week="-1" ${w <= 1 ? "disabled" : ""} aria-label="Previous week">‹</button>
           <span class="wkname">Week ${w}</span>
-          <button data-week="1" ${w >= 8 ? "disabled" : ""} aria-label="Next week">›</button>
+          <button data-week="1" ${w >= WEEKS ? "disabled" : ""} aria-label="Next week">›</button>
         </div>
         <span class="pill"><i style="background:${PHASES[p].color}"></i>Phase ${p} · ${PHASES[p].n}</span>
       </div>
@@ -712,9 +717,9 @@ function painMsg(v) {
 function renderPlan() {
   const pp = pos();
   const wk1 = [0, 1, 2, 3, 4, 5, 6].map(i => fmt(dateOf(1, i), { weekday: "short" }));
-  const rows = [1, 2, 3, 4, 5, 6, 7, 8].map(w => {
+  const rows = Array.from({ length: WEEKS }, (_, i) => i + 1).map(w => {
     const p = phaseOf(w);
-    return `<tr><th style="border-left-color:${PHASES[p].color}"><b>Week ${w}</b><small>${esc(fmt(dateOf(w, 0), { month: "short", day: "numeric" }))}${w === 8 ? " · taper" : ""}</small></th>${
+    return `<tr><th style="border-left-color:${PHASES[p].color}"><b>Week ${w}</b><small>${esc(fmt(dateOf(w, 0), { month: "short", day: "numeric" }))}${w === WEEKS ? " · taper" : ""}</small></th>${
       [0, 1, 2, 3, 4, 5, 6].map(d => {
         const t = typeFor(w, d), s = session(w, d);
         return `<td><button class="cell${isToday(w, d) ? " is-today" : ""}${S.done[k(w, d)] ? " is-done" : ""}${t === "rest" ? " rest" : ""}" data-goto="${w}-${d}">
@@ -725,7 +730,7 @@ function renderPlan() {
   document.getElementById("view").innerHTML = `
     <div class="plan-top">
       <div class="legend"><span>${eff("green")}Easy</span><span>${eff("blue")}Moderate</span><span>${eff("black")}Hard</span></div>
-      <span class="pill mono">${total} of 48 sessions complete</span>
+      <span class="pill mono">${total} of ${WEEKS * 6} sessions complete</span>
     </div>
     <div class="scroll-x"><table class="grid"><thead><tr><th></th>${wk1.map(x => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
     <div class="phase-cards">${[1, 2, 3].map(n => `
@@ -770,7 +775,7 @@ function renderTests() {
       <tr class="lsi"><td></td><td class="side">LSI</td><td></td>${TCOLS.map(([c]) => `<td data-lsi="${t.id}-${c}">${lsi(t.id, c)}</td>`).join("")}</tr>`;
   }).join("");
   document.getElementById("view").innerHTML = `
-    <p class="intro">Test before Week 1, after Week 4 and after Week 8, warmed up and fresh. LSI (limb symmetry index) is the weaker side as a percentage of the stronger side. Under 90% points to the side that needs extra single-leg work, and it's one of the clearest knee injury risk markers. Skip the hop test and broad jump until you pass the shin check.</p>
+    <p class="intro">Test before Week 1, after Week 3 and after Week 6, warmed up and fresh. LSI (limb symmetry index) is the weaker side as a percentage of the stronger side. Under 90% points to the side that needs extra single-leg work, and it's one of the clearest knee injury risk markers. Skip the hop test and broad jump until you pass the shin check.</p>
     <div class="scroll-x"><table class="tests">
       <thead><tr><th>Test</th><th></th><th>Target</th>${TCOLS.map(([, l]) => `<th>${l}</th>`).join("")}</tr></thead>
       <tbody>${rows}</tbody></table></div>`;
@@ -779,13 +784,13 @@ function renderTests() {
 function renderSeason() {
   const pp = pos();
   const inPrep = !pp.post;
-  const end = dateOf(8, 6);
+  const end = dateOf(WEEKS, 5);
   const mcard = m => `<div class="card"><h4>${esc(m.t)}</h4>${m.items.map(([id, dose]) => `<div class="mrow"><span>${esc(EX[id].n)}</span><span>${esc(dose)}</span></div>`).join("")}</div>`;
   document.getElementById("view").innerHTML = `
   <div class="season">
     <ol class="tl">
       <li class="${inPrep ? "now" : ""}"><span class="when">${esc(fmt(parseD(S.start), { month: "short", day: "numeric" }))} – ${esc(fmt(end, { month: "short", day: "numeric" }))}</span>
-        <h3>Ski prep</h3><p>Weeks 1–3 let your shins heal: your split stays, running and jumping stop, and conditioning moves to the bike. Weeks 4–8 build Strength, then Power, with a taper in the final week.</p></li>
+        <h3>Ski prep</h3><p>Weeks 1–3 let your shins heal: your split stays, running and jumping stop, and conditioning moves to the bike. Weeks 4–5 build Strength, Week 6 is Power, and Week 7 tapers into your first ski day.</p></li>
       <li class="${!inPrep ? "now" : ""}"><span class="when">Ski season · through March</span>
         <h3>In-season maintenance</h3>
         <p>Keep Upper, Push and Pull from your split. Swap Lower and Legs for these two shorter sessions so your legs stay fresh for the mountain. Skip one after a big ski day and never train legs the day before you ski.</p>
@@ -801,7 +806,7 @@ function renderSeason() {
       <div class="card">
         <h3>Your dates</h3>
         <div class="field"><label for="d-start">Program start</label><input type="date" id="d-start" value="${esc(S.start)}"><small>Week 1 begins on this day, and each week runs Upper, Lower, Rehab, Push, Pull, Legs, Rest from there.</small></div>
-        <div class="field"><label for="d-ski">First ski day</label><input type="date" id="d-ski" value="${esc(S.ski)}"><small>Drives the countdown. Ideally the week after Week 8 ends.</small></div>
+        <div class="field"><label for="d-ski">First ski day</label><input type="date" id="d-ski" value="${esc(S.ski)}"><small>Drives the countdown. Ideally the day after Week 7 ends.</small></div>
       </div>
       <div class="card">
         <h3>What you need</h3>
@@ -832,7 +837,7 @@ document.addEventListener("click", e => {
   if (t.dataset.view) return go(t.dataset.view);
   if (t.dataset.goto) { const [w, d] = t.dataset.goto.split("-").map(Number); sel = { w, d }; go("session"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
   if (t.dataset.day !== undefined) { sel.d = Number(t.dataset.day); return renderSession(); }
-  if (t.dataset.week) { sel.w = Math.min(8, Math.max(1, sel.w + Number(t.dataset.week))); return renderSession(); }
+  if (t.dataset.week) { sel.w = Math.min(WEEKS, Math.max(1, sel.w + Number(t.dataset.week))); return renderSession(); }
   if (t.dataset.filter) { libFilter = t.dataset.filter; return renderLibrary(); }
   if (t.dataset.tick) {
     const key = k(sel.w, sel.d), c = S.checks[key] = S.checks[key] || {};
