@@ -142,6 +142,23 @@ ol.exs { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--li
 .swap { font-size: 12px; font-weight: 600; color: var(--blue); border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; margin-left: 4px; white-space: nowrap; vertical-align: 2px; }
 .lb { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); font-family: var(--mono); }
 .lb .plus { color: var(--ink); }
+.tag-ed { font-size: 12px; font-weight: 600; color: var(--accent); border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; margin-left: 4px; white-space: nowrap; vertical-align: 2px; }
+.editbtn { margin-left: auto; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 14px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--ink); }
+.editbtn:hover { border-color: var(--muted); }
+.ex.editing { grid-template-columns: minmax(0, 1fr); }
+.edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 6px; }
+.edit-row label { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.edit-row input, .edit-panel input, .edit-panel select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; font-size: 15px; min-width: 0; }
+.edit-row input { width: 220px; max-width: 100%; font-family: var(--mono); font-size: 14px; }
+.rm { border: 1px solid var(--line); background: none; color: var(--warn); border-radius: 6px; padding: 4px 10px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.rm:hover { border-color: var(--warn); }
+.edit-banner { margin-top: 4px; padding: 10px 14px; border-radius: 8px; background: var(--sunk); font-size: 15px; }
+.edit-panel { margin-top: 18px; }
+.add-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.scope { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.scope label { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+.edit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.linkbtn { border: 0; background: none; color: var(--warn); font-weight: 600; font-size: 14px; padding: 0; cursor: pointer; text-align: left; width: fit-content; }
 .lb .plan { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .lb input.is-set { border-color: var(--accent); }
 .lb input { width: 72px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 14px; }
@@ -356,7 +373,7 @@ const EX = {
   "forearm-curl": { n: "Forearm Cable Curl", j: "upper", cue: "Forearms supported, curl the wrist only.", why: "Grip and forearm strength from your split." },
   "walk": { n: "Easy Walk", j: "core", cue: "Conversation pace, outside if you can.", why: "Blood flow and recovery without load." }
 };
-const JOINTS = { hip: "Hips", knee: "Knees", ankle: "Ankles, shins & Achilles", power: "Elastic power", core: "Trunk & engine", upper: "Upper body" };
+const JOINTS = { hip: "Hips", knee: "Knees", ankle: "Ankles, shins & Achilles", power: "Elastic power", core: "Trunk & engine", upper: "Upper body", custom: "My exercises" };
 const LOADED = new Set(["squat", "split", "rdl", "hipthrust", "legcurl-lying", "legcurl-seated", "leg-ext", "calf-raise-heavy", "calf-explosive", "abductor", "ab-crunch", "rotation", "lateral-lunge", "stepdown", "soleus", "slrdl", "trapbar", "incline", "cable-fly", "pullup", "pendlay", "lat-raise", "oh-ext", "bayesian", "wrist-curl", "pec-fly-low", "dips", "bench", "db-press", "sa-tri", "close-row", "cs-row", "rear-delt", "hammer", "preacher", "forearm-curl"]);
 
 /* ---------- Program ---------- */
@@ -473,7 +490,25 @@ const TCOLS = [["base", "Week 0"], ["mid", "End wk 3"], ["final", "End wk 6"]];
 
 const pick = (v, w) => (Array.isArray(v) ? v[Math.min(wIn(w), v.length - 1)] : v);
 
-function session(w, d) {
+function applyMods(type, key, blocks, draft) {
+  const cur = order(key);
+  const ops = (S.mods[type] || []).filter(o => (o.only ? o.only === key : o.from <= cur)).concat(draft || []).sort((a, b) => a.seq - b.seq);
+  for (const o of ops) {
+    if (o.op === "remove") blocks.forEach(b => { b.items = b.items.filter(i => i.id !== o.id); });
+    else if (o.op === "dose") blocks.forEach(b => b.items.forEach(i => {
+      if (i.id !== o.id) return;
+      i.dose = o.dose; i.edited = true;
+      if (planWt(o.dose)) i.base = o.dose;
+    }));
+    else if (o.op === "add") {
+      if (blocks.some(b => b.items.some(i => i.id === o.id))) continue;
+      const b = blocks.find(x => x.name === o.block) || blocks[blocks.length - 1];
+      if (b) b.items.push({ id: o.id, dose: o.dose, base: o.dose, added: true });
+    }
+  }
+  return blocks.map(b => ({ ...b, items: b.items.filter(i => EX[i.id]) })).filter(b => b.items.length);
+}
+function session(w, d, draft) {
   const type = typeFor(w, d), p = phaseOf(w), meta = META[type];
   const tpl = TPL[type][p] || TPL[type][2] || TPL[type][1];
   const raw = (type === "lower" || type === "legs") ? [PRIMER, ...tpl] : tpl;
@@ -485,17 +520,18 @@ function session(w, d) {
     name: b.name, note: b.note ? pick(b.note, w) : "",
     items: b.items.map(([id, dose]) => {
       const sub = !S.shinOk && IMPACT[id];
-      if (sub) { swapped++; return { id: sub[0], dose: sub[1], swap: true }; }
-      return { id, dose: pick(dose, w) };
+      if (sub) { swapped++; return { id: sub[0], dose: sub[1], base: sub[1], swap: true }; }
+      const ds = pick(dose, w);
+      return { id, dose: ds, base: ds };
     })
   }));
   blocks.forEach(b => { if (b.items.length && b.items.every(i => i.swap)) b.note = "shin-safe swaps"; });
-  return { type, meta, eff, taper, swapped, blocks };
+  return { type, meta, eff, taper, swapped, blocks: applyMods(type, k(w, d), blocks, draft) };
 }
 
 /* ---------- State ---------- */
 const KEY = "fall-line:v1";
-const DEFAULTS = { ver: 6, start: "2026-10-17", ski: "2026-12-04", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, wt: {}, shinOk: false };
+const DEFAULTS = { ver: 7, start: "2026-10-17", ski: "2026-12-04", checks: {}, done: {}, pain: {}, tests: {}, logs: {}, last: {}, wt: {}, mods: {}, customEx: {}, seq: 0, shinOk: false };
 const normalize = o => {
   const n = Object.assign(clone(DEFAULTS), o), v = o.ver || 1;
   if (v < 2) n.checks = {};
@@ -504,11 +540,18 @@ const normalize = o => {
   if (v < 4 && n.ski === "2026-12-12") n.ski = DEFAULTS.ski;
   /* v6 reordered exercises, so ticks stored by position no longer match */
   if (v < 6) n.checks = {};
-  n.ver = 6;
+  /* v7 keys ticks by exercise instead of position, so edits do not shift them */
+  if (v < 7) n.checks = {};
+  n.ver = 7;
   return n;
 };
 const clone = o => JSON.parse(JSON.stringify(o));
 let S = (() => { try { const r = localStorage.getItem(KEY); if (r) return normalize(JSON.parse(r)); } catch (e) {} return clone(DEFAULTS); })();
+/* Exercises the user created live in their saved state; merge them into the library */
+function syncCustom() { for (const id in S.customEx) { EX[id] = S.customEx[id]; LOADED.add(id); } }
+syncCustom();
+/* Session editing: draft changes are previewed live and saved as changes on top of the plan */
+let editing = null;
 let view = (() => { const h = (location.hash || "").slice(1); if (["session", "plan", "library", "tests", "season"].includes(h)) return h; try { return localStorage.getItem(KEY + ":view") || "session"; } catch (e) { return "session"; } })();
 let libFilter = "all";
 
@@ -564,6 +607,7 @@ function hasData() { return Object.keys(S.done).length || Object.keys(S.checks).
       if (dirty || saving) return;
       if (snap.exists) {
         S = normalize(clone(snap.data()));
+        syncCustom();
         try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
         if (first) { const p = pos(); sel = { w: p.w, d: p.d }; }
         renderAll();
@@ -606,7 +650,7 @@ function renderTabs() {
 }
 
 function renderSession() {
-  const { w, d } = sel, s = session(w, d), key = k(w, d), p = phaseOf(w), dt = dateOf(w, d);
+  const { w, d } = sel, key = k(w, d), ed = !!(editing && editing.key === key), s = session(w, d, ed ? editing.ops : null), p = phaseOf(w), dt = dateOf(w, d);
   const checks = S.checks[key] || {}, done = !!S.done[key], pain = S.pain[key];
   const pp = pos();
   let eyebrow = fmt(dt, { weekday: "long", month: "long", day: "numeric" });
@@ -625,12 +669,17 @@ function renderSession() {
   const blocks = s.blocks.map((b, bi) => `
     <section class="block">
       <div class="block-h"><h3>${esc(b.name)}</h3>${b.note ? `<span class="note">${esc(b.note)}</span>` : ""}</div>
-      <ol class="exs">${b.items.map((it, ii) => {
-        const e = EX[it.id], ck = bi + "." + ii, on = !!checks[ck];
+      <ol class="exs">${b.items.map(it => {
+        const e = EX[it.id], ck = bi + "." + it.id, on = !!checks[ck];
+        const shown = LOADED.has(it.id) ? it.dose.replace(LB_RE, "") : it.dose;
+        if (ed) return `<li class="ex editing"><div>
+            <div class="ex-top"><span class="ex-name">${esc(e.n)}</span><button class="rm" data-rm="${esc(it.id)}">Remove</button></div>
+            <div class="edit-row"><label for="dose-${esc(it.id)}">Sets × reps</label><input id="dose-${esc(it.id)}" data-dose="${esc(it.id)}" value="${esc(shown)}"></div>
+          </div></li>`;
         return `<li class="ex${on ? " is-done" : ""}">
           <button class="tick" data-tick="${ck}" aria-pressed="${on}" aria-label="Mark ${esc(e.n)} done">${CHECK}</button>
           <div>
-            <div class="ex-top"><span class="ex-name">${esc(e.n)}${it.swap ? ' <span class="swap">Shin-safe swap</span>' : ""}</span><span class="ex-right"><span class="dose">${esc(LOADED.has(it.id) ? it.dose.replace(LB_RE, "") : it.dose)}</span>${LOADED.has(it.id) ? lbInput(key, ck, it.id, e.n, it.dose) : ""}</span></div>
+            <div class="ex-top"><span class="ex-name">${esc(e.n)}${it.swap ? ' <span class="swap">Shin-safe swap</span>' : ""}${it.added ? ' <span class="tag-ed">Added</span>' : it.edited ? ' <span class="tag-ed">Edited</span>' : ""}</span><span class="ex-right"><span class="dose">${esc(shown)}</span>${LOADED.has(it.id) ? lbInput(key, ck, it.id, e.n, it.base) : ""}</span></div>
             <p class="cue">${esc(e.cue)}</p>
             <details class="why"><summary>Why it's here</summary><p>${esc(e.why)}</p><a href="${demo(it.id)}" target="_blank" rel="noopener">Watch a demo ↗</a></details>
           </div></li>`;
@@ -656,12 +705,12 @@ function renderSession() {
       <header class="sess-head">
         <span class="label">${esc(eyebrow)}</span>
         <h2>${esc(s.meta.t)}</h2>
-        <div class="meta"><span>${eff(s.eff)}${EFF_LABEL[s.eff]}</span><span>~${s.taper && s.meta.min > 30 ? Math.round(s.meta.min * 0.7) : s.meta.min} min</span><span id="tickcount" class="mono">${ticked}/${total} done</span></div>
+        <div class="meta"><span>${eff(s.eff)}${EFF_LABEL[s.eff]}</span><span>~${s.taper && s.meta.min > 30 ? Math.round(s.meta.min * 0.7) : s.meta.min} min</span><span id="tickcount" class="mono">${ticked}/${total} done</span>${ed ? "" : '<button class="editbtn" data-edit>Edit session</button>'}</div>
         <p class="focus">${esc(s.meta.focus)}</p>
-        ${banner}
+        ${ed ? `<p class="edit-banner">Editing. Remove exercises, change sets and reps, or add new ones below, then save.</p>` : banner}
       </header>
       ${blocks}
-      <div class="finish">
+      ${ed ? editPanel(s, key) : `<div class="finish">
         <div class="finish-row">
           <div class="pain">
             <label for="pain">Shin / Achilles / knee discomfort after this session</label>
@@ -670,7 +719,7 @@ function renderSession() {
           </div>
           <button class="btn${done ? " done" : ""}" data-complete id="completebtn">${done ? "Completed ✓" : "Mark session complete"}</button>
         </div>
-      </div>
+      </div>`}
     </div>
     <aside>
       <div class="card">
@@ -731,6 +780,41 @@ function lbInput(key, ck, id, name, dose) {
   const hint = plan && w.src !== "plan" && w.v !== plan.v ? `<span class="plan">plan ${plan.v}</span>` : "";
   return `<label class="lb" title="Working weight. Changes carry forward to later weeks.">${plan && plan.plus ? '<span class="plus">+</span>' : ""}<input type="number" inputmode="decimal" min="0" step="any" id="lb-${key}-${ck}" class="${w.src === "set" ? "is-set" : ""}" data-lb="${ck}" data-ex="${id}" value="${w.v ?? ""}" placeholder="—" aria-label="Working weight for ${esc(name)}, pounds${plan && plan.plus ? " added" : ""}"><span>lb</span>${hint}</label>`;
 }
+const dayEdit = (o, key) => o.only === key || (!o.only && o.from === order(key));
+function editPanel(s, key) {
+  const groups = Object.entries(JOINTS).map(([j, label]) => {
+    const ids = Object.keys(EX).filter(id => EX[id].j === j).sort((a, b) => EX[a].n.localeCompare(EX[b].n));
+    return ids.length ? `<optgroup label="${esc(label)}">${ids.map(id => `<option value="${esc(id)}">${esc(EX[id].n)}</option>`).join("")}</optgroup>` : "";
+  }).join("");
+  const hasDayEdits = (S.mods[s.type] || []).some(o => dayEdit(o, key));
+  return `
+    <div class="card edit-panel">
+      <h3>Add an exercise</h3>
+      <div class="add-grid">
+        <div class="field"><label for="add-ex">Exercise</label><select id="add-ex"><option value="">Choose…</option><option value="__new">New exercise (type a name)</option>${groups}</select></div>
+        <div class="field" id="add-name-f" hidden><label for="add-name">Name</label><input id="add-name" placeholder="e.g. Sled push"></div>
+        <div class="field"><label for="add-dose">Sets × reps</label><input id="add-dose" placeholder="3 × 8 · 135 lb"></div>
+        <div class="field"><label for="add-block">Section</label><select id="add-block">${s.blocks.map(b => `<option>${esc(b.name)}</option>`).join("")}</select></div>
+      </div>
+      <p class="fine" id="add-msg">Include a weight like "· 135 lb" in sets × reps to start the weight box there.</p>
+      <button class="btn ghost" data-addex>Add to session</button>
+    </div>
+    <div class="card edit-panel">
+      <h3>Save changes</h3>
+      <fieldset class="scope">
+        <label><input type="radio" name="scope" value="forward" checked>This and every later ${esc(s.meta.t)} day</label>
+        <label><input type="radio" name="scope" value="only">This session only</label>
+      </fieldset>
+      <p class="fine">Exercises you don't change keep following the plan's progression.</p>
+      <div class="edit-actions"><button class="btn" data-editsave>Save changes</button><button class="btn ghost" data-editcancel>Cancel</button></div>
+      ${hasDayEdits ? '<button class="linkbtn" data-editreset>Undo all edits saved on this day</button>' : ""}
+    </div>`;
+}
+function draftOp(op) { editing.ops.push({ ...op, seq: 1e9 + editing.ops.length }); }
+function endEdit() {
+  if (editing) for (const id in editing.newEx) if (!S.customEx[id]) { delete EX[id]; LOADED.delete(id); }
+  editing = null;
+}
 function painMsg(v) {
   v = Number(v);
   if (v === 0) return "No discomfort. Progress as written next session.";
@@ -769,7 +853,7 @@ function renderLibrary() {
   const ids = Object.keys(EX).filter(id => libFilter === "all" || EX[id].j === libFilter);
   document.getElementById("view").innerHTML = `
     <div class="chips" role="group" aria-label="Filter by area">
-      ${[["all", "All"], ...Object.entries(JOINTS)].map(([v, l]) => `<button class="chip" data-filter="${v}" aria-pressed="${libFilter === v}">${esc(l)}</button>`).join("")}
+      ${[["all", "All"], ...Object.entries(JOINTS).filter(([j]) => j !== "custom" || Object.keys(S.customEx).length)].map(([v, l]) => `<button class="chip" data-filter="${v}" aria-pressed="${libFilter === v}">${esc(l)}</button>`).join("")}
     </div>
     <div class="lib">${ids.map(id => `
       <article class="card">
@@ -856,12 +940,47 @@ function renderAll() { renderMast(); renderView(); }
 function go(v) { view = v; try { localStorage.setItem(KEY + ":view", v); } catch (e) {} renderView(); }
 document.addEventListener("click", e => {
   if (e.target.closest(".lb")) return;
-  const t = e.target.closest("[data-view],[data-goto],[data-day],[data-week],[data-tick],[data-complete],[data-filter],[data-shin]");
+  const t = e.target.closest("[data-view],[data-goto],[data-day],[data-week],[data-tick],[data-complete],[data-filter],[data-shin],[data-edit],[data-rm],[data-addex],[data-editsave],[data-editcancel],[data-editreset]");
   if (!t) return;
-  if (t.dataset.view) return go(t.dataset.view);
-  if (t.dataset.goto) { const [w, d] = t.dataset.goto.split("-").map(Number); sel = { w, d }; go("session"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
-  if (t.dataset.day !== undefined) { sel.d = Number(t.dataset.day); return renderSession(); }
-  if (t.dataset.week) { sel.w = Math.min(WEEKS, Math.max(1, sel.w + Number(t.dataset.week))); return renderSession(); }
+  if (t.dataset.view) { endEdit(); return go(t.dataset.view); }
+  if (t.hasAttribute("data-edit")) { editing = { key: k(sel.w, sel.d), ops: [], newEx: {} }; return renderSession(); }
+  if (t.dataset.rm) { draftOp({ op: "remove", id: t.dataset.rm }); return renderSession(); }
+  if (t.hasAttribute("data-addex")) {
+    let id = document.getElementById("add-ex").value;
+    const dose = document.getElementById("add-dose").value.trim() || "3 × 8";
+    const block = document.getElementById("add-block").value;
+    const msg = document.getElementById("add-msg");
+    if (!id) { msg.textContent = "Choose an exercise first."; return; }
+    if (id === "__new") {
+      const name = document.getElementById("add-name").value.trim();
+      if (!name) { msg.textContent = "Type a name for the new exercise."; return; }
+      id = "c-" + Date.now().toString(36);
+      editing.newEx[id] = { n: name, j: "custom", cue: "Your own exercise.", why: "Added by you." };
+      EX[id] = editing.newEx[id]; LOADED.add(id);
+    }
+    draftOp({ op: "add", id, dose, block });
+    return renderSession();
+  }
+  if (t.hasAttribute("data-editsave")) {
+    const key = editing.key, type = typeFor(sel.w, sel.d);
+    const only = (document.querySelector('input[name="scope"]:checked') || {}).value === "only";
+    const list = S.mods[type] = S.mods[type] || [];
+    for (const o of editing.ops) {
+      const { seq, ...rest } = o;
+      list.push(only ? { ...rest, seq: ++S.seq, only: key } : { ...rest, seq: ++S.seq, from: order(key) });
+      if (o.op === "add" && editing.newEx[o.id]) S.customEx[o.id] = editing.newEx[o.id];
+    }
+    endEdit(); persist(); return renderSession();
+  }
+  if (t.hasAttribute("data-editcancel")) { endEdit(); return renderSession(); }
+  if (t.hasAttribute("data-editreset")) {
+    const key = editing.key, type = typeFor(sel.w, sel.d);
+    S.mods[type] = (S.mods[type] || []).filter(o => !dayEdit(o, key));
+    endEdit(); persist(); return renderSession();
+  }
+  if (t.dataset.goto) { endEdit(); const [w, d] = t.dataset.goto.split("-").map(Number); sel = { w, d }; go("session"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  if (t.dataset.day !== undefined) { endEdit(); sel.d = Number(t.dataset.day); return renderSession(); }
+  if (t.dataset.week) { endEdit(); sel.w = Math.min(WEEKS, Math.max(1, sel.w + Number(t.dataset.week))); return renderSession(); }
   if (t.dataset.filter) { libFilter = t.dataset.filter; return renderLibrary(); }
   if (t.dataset.tick) {
     const key = k(sel.w, sel.d), c = S.checks[key] = S.checks[key] || {};
@@ -892,6 +1011,13 @@ document.addEventListener("input", e => {
 document.addEventListener("change", e => {
   const el = e.target;
   if (el.id === "pain") { S.pain[k(sel.w, sel.d)] = Number(el.value); persist(); return; }
+  if (el.id === "add-ex") { document.getElementById("add-name-f").hidden = el.value !== "__new"; return; }
+  if (el.dataset.dose && editing) {
+    const id = el.dataset.dose;
+    editing.ops = editing.ops.filter(o => !(o.op === "dose" && o.id === id));
+    draftOp({ op: "dose", id, dose: el.value.trim() });
+    return;
+  }
   if (el.dataset.lb) {
     const key = k(sel.w, sel.d), id = el.dataset.ex, log = S.wt[id] = S.wt[id] || {};
     if (el.value === "") delete log[key];
