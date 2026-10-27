@@ -1,7 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Tolerate pasted settings with stray whitespace, a trailing slash or the REST path on the end.
+const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim().replace(/\/(rest\/v1\/?)?$/, '');
+const key = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
 
 /** Null when the app is built without Supabase settings; the app then runs in device-only mode. */
 export const supabase: SupabaseClient | null = url && key
