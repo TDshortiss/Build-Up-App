@@ -46,7 +46,7 @@ The anon key is designed to be public; row-level security means each user can on
 
 ### 2. Add the settings to GitHub
 
-Repo **Settings → Secrets and variables → Actions → Variables**, add:
+Repo **Settings → Secrets and variables → Actions**, add these as repository **Variables** (repository Secrets work too):
 
 - `VITE_SUPABASE_URL`: the Project URL
 - `VITE_SUPABASE_ANON_KEY`: the anon public key
