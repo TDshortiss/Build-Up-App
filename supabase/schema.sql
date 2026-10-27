@@ -49,6 +49,9 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Only the trigger should run this, never the public API.
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+
 -- Lets a signed-in user permanently delete their own account (required by the App Store and Play Store).
 create or replace function public.delete_my_account()
 returns void language plpgsql security definer set search_path = public as $$
