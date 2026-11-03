@@ -58,6 +58,14 @@ Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 For local development against Supabase, copy `.env.example` to `.env.local` and fill it in.
 
+### 4. Use your own domain (optional)
+
+1. Repo **Settings → Pages → Custom domain**: enter the domain and save.
+2. At your domain registrar, point the domain at GitHub Pages: four `A` records for the root domain (`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`) or a `CNAME` to `tdshortiss.github.io` for a subdomain. On Cloudflare, set them to **DNS only**.
+3. When the DNS check passes, tick **Enforce HTTPS**.
+4. In Supabase **Authentication → URL Configuration**, set **Site URL** to the new address and add it to **Redirect URLs**.
+5. Re-run the deploy (**Actions → Deploy to GitHub Pages → Run workflow**). The build asks GitHub Pages for the site's address, so it serves from `/` on a custom domain without any code change.
+
 ## Before charging money or going to the app stores
 
 - Have the Terms and Privacy pages (`src/screens/Legal.tsx`) reviewed.

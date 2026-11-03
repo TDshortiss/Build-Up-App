@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 declare const process: { env: Record<string, string | undefined> };
 
-// BASE_PATH is set by the GitHub Pages workflow (e.g. "/Build-Up-App/"). Defaults to "/" for local dev and other hosts.
+// BASE_PATH is set by the GitHub Pages workflow ("/Build-Up-App/" on github.io, "/" on a custom domain). Defaults to "/" for local dev.
 const base = process.env.BASE_PATH || '/';
 
 export default defineConfig({
