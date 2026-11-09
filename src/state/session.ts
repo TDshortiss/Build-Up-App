@@ -42,7 +42,7 @@ export function initSession() {
     set({ status: 'local' });
     return;
   }
-  supabase.auth.getSession().then(({ data }) => handleSession(data.session));
+  void verifyEmailLink().then(() => supabase!.auth.getSession()).then(({ data }) => handleSession(data.session));
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') set({ recovery: true });
     // Defer so Supabase finishes its own bookkeeping before we query.
@@ -50,6 +50,27 @@ export function initSession() {
   });
   onLocalChange(() => schedulePush());
   window.addEventListener('online', () => { if (userId) void push(); });
+}
+
+/*
+ * Our email templates link to the app itself (?token_hash=…&type=…) instead of to supabase.co, so the
+ * link in the email matches the domain it was sent from. That match helps keep the email out of junk.
+ */
+type EmailLinkType = 'signup' | 'recovery' | 'email_change' | 'magiclink' | 'invite' | 'email';
+const LINK_TYPES: EmailLinkType[] = ['signup', 'recovery', 'email_change', 'magiclink', 'invite', 'email'];
+
+async function verifyEmailLink() {
+  if (!supabase) return;
+  const params = new URLSearchParams(window.location.search);
+  const tokenHash = params.get('token_hash');
+  const type = params.get('type') as EmailLinkType | null;
+  if (!tokenHash || !type || !LINK_TYPES.includes(type)) return;
+  params.delete('token_hash');
+  params.delete('type');
+  const rest = params.toString();
+  window.history.replaceState(null, '', `${window.location.pathname}${rest ? `?${rest}` : ''}${window.location.hash}`);
+  const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+  if (!error && type === 'recovery') set({ recovery: true });
 }
 
 async function handleSession(session: SbSession | null) {
