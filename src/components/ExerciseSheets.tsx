@@ -3,26 +3,16 @@ import { avoidMap } from '../engine/resolve';
 import type { AppState, Exercise, Tier } from '../engine/types';
 import { update } from '../state/store';
 import { MUSCLE_LABEL, musclesFor } from '../data/muscles';
-import { PHOTOS } from '../data/photos';
-import { photoUrl } from './ExercisePicker';
 import { Sheet } from './ui';
 import { BodyMap } from './visuals';
 
 export function ExerciseInfo({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
   const q = encodeURIComponent(`${ex.name} exercise how to`);
   const m = musclesFor(ex);
-  const photo = PHOTOS.has(ex.id);
   return (
     <Sheet title={ex.name} onClose={onClose}>
       <span className="tag">{AREA_LABEL[ex.area]} · {['Bodyweight', 'Home gear', 'Gym'][ex.tier]}</span>
-      <div className={`ex-visual${photo ? '' : ' solo'}`}>
-        {photo && (
-          <div className="demo" role="img" aria-label={`${ex.name}: start and finish positions`}>
-            <span className="frame f0" style={{ backgroundImage: `url(${photoUrl(ex.id)})` }} />
-            <span className="frame f1" style={{ backgroundImage: `url(${photoUrl(ex.id)})` }} />
-            <span className="demo-k"><i />Start<i />Finish</span>
-          </div>
-        )}
+      <div className="ex-visual">
         <div className="muscles">
           <BodyMap primary={m.p} secondary={m.s} />
           <div className="mkey">
@@ -40,7 +30,6 @@ export function ExerciseInfo({ ex, onClose }: { ex: Exercise; onClose: () => voi
         <p>{ex.why}</p>
       </div>
       <a href={`https://www.youtube.com/results?search_query=${q}`} target="_blank" rel="noreferrer">Watch a demo on YouTube</a>
-      {photo && <p className="fine">Photos: Free Exercise DB (public domain).</p>}
     </Sheet>
   );
 }

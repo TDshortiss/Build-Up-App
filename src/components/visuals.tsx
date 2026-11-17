@@ -75,6 +75,34 @@ export function BodyMap({ primary, secondary }: { primary: Muscle[]; secondary: 
   return <div className="bodymap">{fig(anteriorData, 'Front')}{fig(posteriorData, 'Back')}</div>;
 }
 
+/** Tiny one-view body for list thumbnails: the side that shows more of the main muscles, zoomed onto them. */
+export function MiniBody({ primary }: { primary: Muscle[] }) {
+  const { data, lit, box } = useMemo(() => {
+    const lit = new Set<BodyMuscle>(primary.flatMap(x => MUSCLE_PARTS[x]));
+    const hits = (d: typeof anteriorData) => d.filter(part => lit.has(part.muscle)).flatMap(part => part.svgPoints);
+    const front = hits(anteriorData), back = hits(posteriorData);
+    const useBack = back.length >= front.length && back.length > 0;
+    const nums = (useBack ? back : front).join(' ').trim().split(/[\s,]+/).map(Number);
+    let box = '0 0 100 200';
+    if (nums.length >= 2) {
+      const xs = nums.filter((_, i) => i % 2 === 0), ys = nums.filter((_, i) => i % 2 === 1);
+      const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+      const side = Math.min(200, Math.max(70, Math.max(...xs) - Math.min(...xs) + 16, Math.max(...ys) - Math.min(...ys) + 16));
+      const x = Math.min(Math.max(cx - side / 2, 50 - side / 2 - 25), 50 + 25 - side / 2);
+      const y = Math.min(Math.max(cy - side / 2, 0), 200 - side);
+      box = `${x.toFixed(1)} ${y.toFixed(1)} ${side.toFixed(1)} ${side.toFixed(1)}`;
+    }
+    return { data: useBack ? posteriorData : anteriorData, lit, box };
+  }, [primary]);
+  return (
+    <svg viewBox={box} aria-hidden="true">
+      {data.map(part => part.svgPoints.map((pts, i) => (
+        <polygon key={`${part.muscle}-${i}`} points={pts} className={`bm${lit.has(part.muscle) ? ' p' : ''}`} />
+      )))}
+    </svg>
+  );
+}
+
 /* ---------- Line chart ---------- */
 
 export interface Point { date: string; value: number }

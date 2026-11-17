@@ -1,21 +1,16 @@
 import { useMemo, useState } from 'react';
-import { AREA_LABEL, EXERCISES } from '../data/exercises';
+import { AREA_LABEL, EX, EXERCISES } from '../data/exercises';
 import { MUSCLE_LABEL, musclesFor } from '../data/muscles';
-import { PHOTOS } from '../data/photos';
 import type { Muscle, Tier } from '../engine/types';
 import { Chip, Sheet } from './ui';
+import { MiniBody } from './visuals';
 
 export const MUSCLE_FILTERS: Muscle[] = ['chest', 'upper-back', 'lats', 'front-delts', 'side-delts', 'biceps', 'triceps', 'abs', 'quads', 'hamstrings', 'glutes', 'calves'];
 
-export function photoUrl(id: string): string {
-  return `${import.meta.env.BASE_URL}ex/${id}.jpg`;
-}
-
-/** Small square thumbnail: the start photo when there is one, else a coloured initial. */
-export function ExThumb({ id, name }: { id: string; name: string }) {
-  return PHOTOS.has(id)
-    ? <span className="thumb" style={{ backgroundImage: `url(${photoUrl(id)})` }} aria-hidden="true" />
-    : <span className="thumb none" aria-hidden="true">{name[0]}</span>;
+/** Small square thumbnail: a tiny body with the exercise's main muscles lit up. */
+export function ExThumb({ id }: { id: string; name?: string }) {
+  const ex = EX[id];
+  return <span className="thumb" aria-hidden="true">{ex && <MiniBody primary={musclesFor(ex).p} />}</span>;
 }
 
 /** Search and pick an exercise. Calls onPick once per tap, so several can be added in a row. */
