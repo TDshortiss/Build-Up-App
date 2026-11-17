@@ -10,7 +10,21 @@ const PREVIEW = import.meta.env.VITE_PREVIEW === '1';
 
 applyTheme();
 initSession();
-if (!PREVIEW) registerSW({ immediate: true });
+// Installed apps (iPhone especially) often resume from memory without reloading, so the browser never checks for a
+// new version. Check whenever the app comes back to the foreground, and hourly while it stays open. With autoUpdate,
+// a new version installs and the page reloads itself.
+if (!PREVIEW) {
+  registerSW({
+    immediate: true,
+    onRegisteredSW(_url, reg) {
+      if (!reg) return;
+      const check = () => { if (document.visibilityState === 'visible' && navigator.onLine) reg.update().catch(() => {}); };
+      document.addEventListener('visibilitychange', check);
+      window.addEventListener('focus', check);
+      setInterval(check, 60 * 60 * 1000);
+    },
+  });
+}
 
 async function start() {
   let extra = null;
