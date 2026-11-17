@@ -11,7 +11,7 @@ export const STATE_VERSION = 1;
 export function emptyState(): AppState {
   return {
     ver: STATE_VERSION, updatedAt: 0, profile: null, plan: null, logs: {}, rehab: {}, swaps: {}, lastWeight: {},
-    acceptedTermsAt: null,
+    acceptedTermsAt: null, workouts: [], sessions: {},
   };
 }
 
@@ -94,7 +94,7 @@ export function updateLog(date: string, fn: (l: DayLog) => DayLog) {
 
 /**
  * Merge two copies of the state. Workout logs merge day by day so sessions logged on two devices
- * are both kept; everything else comes from whichever copy was edited most recently.
+ * are both kept (so are custom workout sessions, by id); everything else comes from whichever copy was edited most recently.
  */
 export function mergeStates(a: AppState, b: AppState): AppState {
   const [newer, older] = a.updatedAt >= b.updatedAt ? [a, b] : [b, a];
@@ -102,5 +102,9 @@ export function mergeStates(a: AppState, b: AppState): AppState {
   for (const [date, log] of Object.entries(newer.logs)) {
     if (!logs[date] || log.updatedAt >= logs[date].updatedAt) logs[date] = log;
   }
-  return { ...newer, logs, lastWeight: { ...older.lastWeight, ...newer.lastWeight } };
+  const sessions = { ...older.sessions };
+  for (const [id, ses] of Object.entries(newer.sessions)) {
+    if (!sessions[id] || ses.updatedAt >= sessions[id].updatedAt) sessions[id] = ses;
+  }
+  return { ...newer, logs, sessions, lastWeight: { ...older.lastWeight, ...newer.lastWeight }, seenLevel: Math.max(older.seenLevel ?? 0, newer.seenLevel ?? 0) || undefined };
 }

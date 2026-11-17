@@ -158,7 +158,7 @@ function candidates(pattern: Pattern, role: SlotRole, ctx: Ctx, used: Set<string
   const lift = role === 'main' || role === 'secondary';
   let c = EXERCISES
     .filter(e => e.pattern === pattern && e.tier <= ctx.tier && e.level <= ctx.maxLevel && !used.has(e.id)
-      && !REHAB_ONLY.has(e.id) && !e.tags.some(t => ctx.avoid.has(t))
+      && !REHAB_ONLY.has(e.id) && !e.lib && !e.tags.some(t => ctx.avoid.has(t))
       && !(BUILDING.includes(phaseKind) && e.tags.includes('plyo-high')));
   if (role === 'main' && c.some(e => MAIN_OK.has(e.id))) c = c.filter(e => MAIN_OK.has(e.id));
   return c.sort((a, b) =>
@@ -208,7 +208,7 @@ function expand(t: Token, ctx: Ctx, kind: PhaseKind): Pattern[] {
 function preferConditioning(c: Exercise | null, ctx: Ctx, used: Set<string>): Exercise | null {
   if (!c || (c.pattern !== 'cond-aero' && c.pattern !== 'cond-int')) return c;
   const runs = ctx.sport ? ctx.sport.runs : ctx.p.generalFocus === 'fitness';
-  const pool = EXERCISES.filter(e => e.pattern === c.pattern && e.tier <= ctx.tier && !used.has(e.id) && e.id !== 'easy-walk');
+  const pool = EXERCISES.filter(e => e.pattern === c.pattern && e.tier <= ctx.tier && !used.has(e.id) && !e.lib && e.id !== 'easy-walk');
   const want = pool.find(e => (runs ? e.tags.includes('impact') : !e.tags.includes('impact')));
   return want ?? c;
 }

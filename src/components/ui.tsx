@@ -23,8 +23,10 @@ export const Close = () => (
 );
 
 const ICONS: Record<string, string> = {
-  today: 'M4 5h16v15H4zM4 9h16M9 3v4M15 3v4',
-  plan: 'M4 6h16M4 12h16M4 18h10',
+  home: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z',
+  plan: 'M4 5h16v15H4zM4 9h16M9 3v4M15 3v4',
+  workouts: 'M3 10v4M6.5 7v10M17.5 7v10M21 10v4M6.5 12h11',
+  list: 'M4 6h16M4 12h16M4 18h10',
   rehab: 'M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z',
   library: 'M5 4h4v16H5zM10 4h4v16h-4zM15.5 4.5l3.8 1-3.9 15-3.8-1z',
   me: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0',

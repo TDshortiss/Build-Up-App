@@ -1,5 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Close, Logo, TabIcon } from './components/ui';
+import { useEffect, useMemo, useState } from 'react';
+import { ConfirmHost, ask } from './components/ConfirmHost';
+import { LevelUp, RankSheet, StreakSheet } from './components/RankSheet';
+import { Close, Logo, Seg, TabIcon } from './components/ui';
+import { Flame, RankBadge } from './components/visuals';
+import { computeProgress, levelInfo, type WorkoutRecord } from './engine/progress';
+import type { CustomWorkout } from './engine/types';
+import { Home } from './screens/Home';
+import { ActiveWorkout, SessionSummary, Workouts } from './screens/Workouts';
+import { update } from './state/store';
+import { activeSession, startSession } from './state/workouts';
 import { tierOf } from './engine/resolve';
 import { Library } from './screens/Library';
 import { Legal, type LegalPage } from './screens/Legal';
@@ -7,12 +16,12 @@ import { Me } from './screens/Me';
 import { Onboarding } from './screens/Onboarding';
 import { PlanView } from './screens/PlanView';
 import { Rehab } from './screens/Rehab';
-import { Today } from './screens/Today';
+import { planPosition, Today } from './screens/Today';
 import { AuthScreen, Welcome } from './screens/Welcome';
 import { retrySync, useSession } from './state/session';
 import { useAppState } from './state/store';
 
-type Tab = 'today' | 'plan' | 'rehab' | 'library' | 'me';
+type Tab = 'home' | 'plan' | 'workouts' | 'rehab' | 'library' | 'me';
 const LEGAL: LegalPage[] = ['terms', 'privacy', 'disclaimer'];
 
 interface InstallEvent extends Event { prompt: () => Promise<void> }
@@ -48,13 +57,24 @@ export function App() {
   const state = useAppState();
   const hash = useHash();
   const install = useInstall();
-  const [tab, setTab] = useState<Tab>('today');
+  const [tab, setTab] = useState<Tab>('home');
+  const [planView, setPlanView] = useState<'week' | 'plan'>('week');
   const [focus, setFocus] = useState<{ week: number; day: number } | null>(null);
   const [editing, setEditing] = useState(false);
   const [auth, setAuth] = useState<'signup' | 'signin' | null>(null);
   const [installDismissed, setInstallDismissed] = useState(() => readFlag('build-up:install-dismissed'));
+  const [sheet, setSheet] = useState<'rank' | 'streak' | null>(null);
+  const [workoutOpen, setWorkoutOpen] = useState(false);
+  const [summary, setSummary] = useState<{ id: string; xpBefore?: number } | null>(null);
+  const progress = useMemo(() => computeProgress(state), [state]);
+  const level = levelInfo(progress.xp).level;
+  const active = activeSession(state);
 
   useEffect(() => { window.scrollTo(0, 0); }, [tab]);
+  // Nobody needs a "level up" for the starting rank.
+  useEffect(() => {
+    if (state.profile && state.seenLevel === undefined && level === 0) update(s => ({ ...s, seenLevel: 0 }));
+  }, [state.profile, state.seenLevel, level]);
 
   if (LEGAL.includes(hash as LegalPage)) {
     return <Legal page={hash as LegalPage} onBack={() => { window.location.hash = ''; }} />;
@@ -74,20 +94,46 @@ export function App() {
       </div></div>
     );
   }
-  if (!state.profile || !state.plan || editing) {
+  if (!state.profile || (!state.plan && state.profile.goal !== 'free') || editing) {
     return (
       <Onboarding existing={editing ? state.profile : null}
-        onDone={() => { setEditing(false); setTab('today'); setFocus(null); }}
+        onDone={() => { setEditing(false); setTab('home'); setFocus(null); }}
         onCancel={editing ? () => setEditing(false) : undefined} />
     );
   }
 
-  const tabs: [Tab, string][] = [['today', 'Today'], ['plan', 'Plan'], ...(state.profile.injuries.length ? [['rehab', 'Rehab'] as [Tab, string]] : []), ['library', 'Exercises'], ['me', 'Me']];
-  const showInstall = !installDismissed && (install.can || install.ios) && tab === 'today';
+  const profile = state.profile;
+  const tier = tierOf(state);
+  const tabs: [Tab, string][] = [
+    ['home', 'Home'],
+    ...(state.plan ? [['plan', 'Plan'] as [Tab, string]] : []),
+    ['workouts', 'Workouts'],
+    ...(profile.injuries.length && state.plan ? [['rehab', 'Rehab'] as [Tab, string]] : []),
+    ['library', 'Exercises'],
+  ];
+  const current: Tab = tab === 'plan' && !state.plan ? 'home' : tab;
+  const showInstall = !installDismissed && (install.can || install.ios) && current === 'home';
   const dismissInstall = () => {
     setInstallDismissed(true);
     try { localStorage.setItem('build-up:install-dismissed', '1'); } catch { /* ignore */ }
   };
+  const go = (t: Tab) => { setTab(t); if (t === 'plan') { setFocus(null); setPlanView('week'); } };
+  const startWorkout = async (w: CustomWorkout | null) => {
+    if (active && !(w && active.workoutId === w.id) && !(await ask(`You already have "${active.name}" in progress. Finish or discard it before starting another.`, { yes: 'Open it' }))) return;
+    startSession(w);
+    setWorkoutOpen(true);
+  };
+  const openRecord = (r: WorkoutRecord) => {
+    if (r.kind === 'custom' && r.id) { setSummary({ id: r.id }); return; }
+    if (state.plan) {
+      const pos = planPosition(state.plan, r.date);
+      setFocus({ week: pos.week, day: pos.day });
+      setPlanView('week');
+      setTab('plan');
+    }
+  };
+  const info = levelInfo(progress.xp);
+  const showLevelUp = !workoutOpen && !summary && (state.seenLevel === undefined ? level > 0 : level > state.seenLevel);
 
   return (
     <div className="app">
@@ -95,15 +141,24 @@ export function App() {
         <div className="topbar-in">
           <Logo />
           <span className="spacer" />
-          {session.status === 'signed-in'
-            ? <span className="sync" data-s={session.sync}>{{ idle: 'Saved', syncing: 'Saving…', synced: 'Synced', offline: 'Offline', error: 'Not synced' }[session.sync]}</span>
-            : <span className="sync">On this device</span>}
+          <button className={`chip-btn streak ${progress.streak.status}`} onClick={() => setSheet('streak')} aria-label={`Streak: ${progress.streak.count} days`}>
+            <Flame lit={progress.streak.count > 0} size={20} warn={progress.streak.status === 'last-chance'} />
+            <span className="mono">{progress.streak.count}</span>
+          </button>
+          <button className="chip-btn rank" onClick={() => setSheet('rank')} aria-label={`Rank: ${info.name}`}>
+            <RankBadge level={info.level} size={20} />
+            <span className="rank-label">{info.name}</span>
+          </button>
+          <button className={`avatar${current === 'me' ? ' on' : ''}`} onClick={() => setTab('me')} aria-label="Profile and settings">
+            {profile.name.trim()[0]?.toUpperCase() ?? '?'}
+            {session.status === 'signed-in' && <i className="sync-dot" data-s={session.sync} />}
+          </button>
         </div>
       </header>
       <nav className="bottom" aria-label="Main">
         <div className="in">
           {tabs.map(([k, label]) => (
-            <button key={k} aria-current={tab === k ? 'page' : undefined} onClick={() => { setTab(k); if (k === 'today') setFocus(null); }}>
+            <button key={k} aria-current={current === k ? 'page' : undefined} onClick={() => go(k)}>
               <TabIcon name={k} />{label}
             </button>
           ))}
@@ -120,11 +175,37 @@ export function App() {
         </div>
       )}
 
-      {tab === 'today' && <Today state={state} focus={focus} onFocus={setFocus} onRebuild={() => setEditing(true)} onRehab={() => setTab('rehab')} />}
-      {tab === 'plan' && <PlanView state={state} onOpen={f => { setFocus(f); setTab('today'); }} />}
-      {tab === 'rehab' && <Rehab state={state} />}
-      {tab === 'library' && <Library tier={tierOf(state)} />}
-      {tab === 'me' && <Me state={state} session={session} onEdit={() => setEditing(true)} install={install} />}
+      {current === 'home' && (
+        <Home state={state} progress={progress} onRank={() => setSheet('rank')} onStreak={() => setSheet('streak')}
+          onPlan={() => go('plan')} onStartWorkout={startWorkout} onWorkouts={() => go('workouts')} onOpenRecord={openRecord} onGetPlan={() => setEditing(true)} />
+      )}
+      {current === 'plan' && (<>
+        <div className="wrap" style={{ paddingBottom: 0 }}>
+          <Seg<'week' | 'plan'> label="Plan view" value={planView} options={[['week', 'Sessions'], ['plan', 'Whole plan']]} onChange={setPlanView} />
+        </div>
+        {planView === 'week'
+          ? <Today state={state} focus={focus} onFocus={setFocus} onRebuild={() => setEditing(true)} onRehab={() => go('rehab')} />
+          : <PlanView state={state} onOpen={f => { setFocus(f); setPlanView('week'); }} />}
+      </>)}
+      {current === 'workouts' && <Workouts state={state} progress={progress} tier={tier} onStart={startWorkout} onOpenSession={id => setSummary({ id })} />}
+      {current === 'rehab' && <Rehab state={state} />}
+      {current === 'library' && <Library tier={tier} />}
+      {current === 'me' && <Me state={state} session={session} progress={progress} onEdit={() => setEditing(true)} onRank={() => setSheet('rank')} onStreak={() => setSheet('streak')} install={install} />}
+
+      {active && !workoutOpen && (
+        <button className="resume" onClick={() => setWorkoutOpen(true)}>
+          <span className="pulse" aria-hidden="true" /><span><b>{active.name}</b> in progress</span><span className="spacer" /><span className="linkbtn">Resume</span>
+        </button>
+      )}
+      {active && workoutOpen && (
+        <ActiveWorkout session={active} state={state} tier={tier} onHide={() => setWorkoutOpen(false)}
+          onFinished={id => { setWorkoutOpen(false); setSummary({ id, xpBefore: progress.xp }); }} />
+      )}
+      {summary && <SessionSummary id={summary.id} state={state} justFinished={summary.xpBefore !== undefined ? { xpBefore: summary.xpBefore } : undefined} onClose={() => setSummary(null)} />}
+      {sheet === 'rank' && <RankSheet progress={progress} onClose={() => setSheet(null)} />}
+      {sheet === 'streak' && <StreakSheet progress={progress} onClose={() => setSheet(null)} />}
+      <ConfirmHost />
+      {showLevelUp && <LevelUp level={level} first={state.seenLevel === undefined} onClose={() => update(s => ({ ...s, seenLevel: level }))} />}
     </div>
   );
 }
