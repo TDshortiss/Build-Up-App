@@ -77,7 +77,7 @@ function safe(ex: Exercise, avoid: Map<Tag, InjuryId>): boolean {
 }
 
 function alternative(from: Exercise, tier: Tier, avoid: Map<Tag, InjuryId>, exclude: Set<string>): Exercise | null {
-  const ok = (e: Exercise) => e.tier <= tier && safe(e, avoid) && !exclude.has(e.id) && e.id !== from.id;
+  const ok = (e: Exercise) => !e.lib && e.tier <= tier && safe(e, avoid) && !exclude.has(e.id) && e.id !== from.id;
   const same = EXERCISES.filter(e => e.pattern === from.pattern && ok(e))
     .sort((a, b) => (b.area === from.area ? 1 : 0) - (a.area === from.area ? 1 : 0) || b.tier - a.tier);
   if (same.length) return same[0];
@@ -128,8 +128,8 @@ export function rehabItems(id: InjuryId, rehab: AppState['rehab'], tier: Tier, p
     let ex = EX[d.ex];
     let from: Exercise | undefined;
     if (ex.tier > tier) {
-      const alt = EXERCISES.filter(e => e.pattern === ex.pattern && e.tier <= tier && e.area === ex.area)[0]
-        ?? EXERCISES.filter(e => e.pattern === ex.pattern && e.tier <= tier)[0];
+      const alt = EXERCISES.filter(e => !e.lib && e.pattern === ex.pattern && e.tier <= tier && e.area === ex.area)[0]
+        ?? EXERCISES.filter(e => !e.lib && e.pattern === ex.pattern && e.tier <= tier)[0];
       if (alt) { from = ex; ex = alt; }
     }
     const item: PlanItem = { ex: ex.id, sets: d.sets, reps: d.reps, role: 'prehab', effort: d.note };

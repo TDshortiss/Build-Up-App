@@ -1,6 +1,7 @@
 /* Shared types for the content library, the plan generator and saved user state. */
 
-export type Goal = 'rehab' | 'offseason' | 'inseason' | 'general';
+/** 'free': no screening and no generated plan, just the user's own workouts. */
+export type Goal = 'rehab' | 'offseason' | 'inseason' | 'general' | 'free';
 export type GeneralFocus = 'muscle' | 'strength' | 'fitness';
 export type Equipment = 'bodyweight' | 'home' | 'gym';
 export type Experience = 'beginner' | 'intermediate' | 'advanced';
@@ -20,6 +21,11 @@ export type Pattern =
   | 'plyo-v' | 'plyo-h' | 'plyo-l' | 'plyo-upper' | 'rotational'
   | 'sprint' | 'agility' | 'cond-aero' | 'cond-int'
   | 'mobility' | 'balance' | 'rehab';
+
+export type Muscle =
+  | 'chest' | 'front-delts' | 'side-delts' | 'rear-delts' | 'biceps' | 'triceps' | 'forearms'
+  | 'abs' | 'obliques' | 'traps' | 'lats' | 'upper-back' | 'lower-back'
+  | 'glutes' | 'quads' | 'hamstrings' | 'adductors' | 'abductors' | 'hip-flexors' | 'calves' | 'shins' | 'neck';
 
 export type Area = 'ankle' | 'knee' | 'hip' | 'back' | 'shoulder' | 'elbow' | 'core' | 'upper' | 'lower' | 'full';
 
@@ -48,6 +54,10 @@ export interface Exercise {
   /** Dose is in seconds rather than reps. */
   timed?: boolean;
   unilateral?: boolean;
+  /** Added for custom workouts and the library; the plan generator doesn't pick these on its own. */
+  lib?: boolean;
+  /** Muscles worked, when they differ from the defaults for the exercise's pattern. */
+  muscles?: { p: Muscle[]; s?: Muscle[] };
   cue: string;
   why: string;
 }
@@ -258,6 +268,46 @@ export interface RehabState {
   cleared?: boolean;
 }
 
+/* ---------- Custom workouts ---------- */
+
+export interface WorkoutItem {
+  ex: string;
+  sets: number;
+  /** Target reps (or seconds for timed exercises), shown as a hint while logging. */
+  reps: string;
+}
+
+/** A workout the user built themselves, reusable as a template. */
+export interface CustomWorkout {
+  id: string;
+  name: string;
+  items: WorkoutItem[];
+  createdAt: string;
+  updatedAt: number;
+}
+
+export interface SetLog {
+  reps: number | null;
+  weight: number | null;
+  done: boolean;
+}
+
+/** One logged custom workout. In progress until completedAt is set. */
+export interface WorkoutSession {
+  id: string;
+  /** Local date the workout was started, YYYY-MM-DD. */
+  date: string;
+  workoutId: string | null;
+  name: string;
+  startedAt: string;
+  completedAt?: string;
+  entries: { ex: string; target?: string; sets: SetLog[] }[];
+  note?: string;
+  rpe?: number;
+  updatedAt: number;
+  deleted?: boolean;
+}
+
 export interface AppState {
   ver: number;
   updatedAt: number;
@@ -270,4 +320,8 @@ export interface AppState {
   /** Last weight used per exercise, carried forward. */
   lastWeight: Record<string, number>;
   acceptedTermsAt: string | null;
+  workouts: CustomWorkout[];
+  sessions: Record<string, WorkoutSession>;
+  /** Highest level the user has been shown a level-up for. */
+  seenLevel?: number;
 }

@@ -32,6 +32,7 @@ export function Onboarding({ existing, onDone, onCancel }: { existing?: Profile 
   const set = (p: Partial<Draft>) => setD(prev => ({ ...prev, ...p }));
 
   const steps = useMemo<Step[]>(() => {
+    if (d.goal === 'free') return ['name', 'goal', 'equipment', 'about', 'review'];
     const s: Step[] = ['name', 'goal', d.goal === 'general' ? 'focus' : 'sport', 'injuries'];
     if (d.injuries.length) s.push('injury-detail');
     s.push('timeline', 'schedule', 'equipment', 'about', 'review');
@@ -66,16 +67,17 @@ export function Onboarding({ existing, onDone, onCancel }: { existing?: Profile 
 
   function finish() {
     const profile: Profile = {
-      name: d.name.trim(), goal: d.goal ?? 'general', sport: d.goal === 'general' ? null : d.sport, generalFocus: d.generalFocus,
-      injuries: d.injuries, experience: d.experience, ageGroup: d.ageGroup, equipment: d.equipment,
+      name: d.name.trim(), goal: d.goal ?? 'general', sport: d.goal === 'general' || d.goal === 'free' ? null : d.sport, generalFocus: d.generalFocus,
+      injuries: d.goal === 'free' ? [] : d.injuries, experience: d.experience, ageGroup: d.ageGroup, equipment: d.equipment,
       trainingDays: [...d.trainingDays].sort((a, b) => a - b), gameDays: d.goal === 'inseason' ? d.gameDays : [],
       sessionMinutes: d.sessionMinutes, startDate: d.startDate,
       targetDate: d.goal === 'offseason' || d.goal === 'inseason' ? d.targetDate : null, weeks: d.weeks, units: d.units,
     };
-    const plan = generatePlan(profile);
+    const plan = profile.goal === 'free' ? null : generatePlan(profile);
     const now = today();
     update(s => {
-      const rehab: Partial<Record<InjuryId, RehabState>> = {};
+      // Keep rehab history for injuries no longer in the plan: passed checks still count toward XP.
+      const rehab: Partial<Record<InjuryId, RehabState>> = { ...s.rehab };
       for (const inj of profile.injuries) {
         const prev = s.rehab[inj.id];
         rehab[inj.id] = prev && existing?.injuries.some(e => e.id === inj.id && e.startStage === inj.startStage)
@@ -115,6 +117,8 @@ export function Onboarding({ existing, onDone, onCancel }: { existing?: Profile 
           <Opt big pressed={d.goal === 'inseason'} onClick={() => set({ goal: 'inseason' })} title="In-season: stay strong" sub="Short sessions around games and practice that keep you healthy all season." />
           <Opt big pressed={d.goal === 'general'} onClick={() => set({ goal: 'general', sport: null })} title="General training" sub="Build muscle, get stronger or get fitter. No sport needed." />
         </div>
+        <div className="or"><span>or</span></div>
+        <Opt big pressed={d.goal === 'free'} onClick={() => set({ goal: 'free', sport: null })} title="Just let me train" sub="Skip the questions. Build your own workouts, log your lifts and level up. You can add a plan any time." />
       </>)}
 
       {step === 'sport' && (<>
@@ -210,13 +214,13 @@ export function Onboarding({ existing, onDone, onCancel }: { existing?: Profile 
       </>)}
 
       {step === 'review' && (<>
-        <h2>Ready to build</h2>
+        <h2>{d.goal === 'free' ? 'All set' : 'Ready to build'}</h2>
         <div className="card review">
           <dl>
-            <dt>Goal</dt><dd>{{ rehab: 'Injury rehab', offseason: 'Off-season performance', inseason: 'In-season support', general: { muscle: 'Build muscle', strength: 'Get stronger', fitness: 'Get fitter' }[d.generalFocus] }[d.goal ?? 'general']}</dd>
+            <dt>Goal</dt><dd>{{ rehab: 'Injury rehab', offseason: 'Off-season performance', inseason: 'In-season support', general: { muscle: 'Build muscle', strength: 'Get stronger', fitness: 'Get fitter' }[d.generalFocus], free: 'Your own workouts' }[d.goal ?? 'general']}</dd>
             {sport && d.goal !== 'general' && <><dt>Sport</dt><dd>{sport.name}</dd></>}
-            <dt>Injuries</dt><dd>{d.injuries.length ? d.injuries.map(x => INJURY[x.id].name).join(', ') : 'None'}</dd>
-            <dt>Schedule</dt><dd>{d.trainingDays.length} days, {d.sessionMinutes} min</dd>
+            {d.goal !== 'free' && <><dt>Injuries</dt><dd>{d.injuries.length ? d.injuries.map(x => INJURY[x.id].name).join(', ') : 'None'}</dd>
+            <dt>Schedule</dt><dd>{d.trainingDays.length} days, {d.sessionMinutes} min</dd></>}
             <dt>Equipment</dt><dd>{{ gym: 'Full gym', home: 'Home gear', bodyweight: 'No equipment' }[d.equipment]}</dd>
           </dl>
         </div>
@@ -230,7 +234,7 @@ export function Onboarding({ existing, onDone, onCancel }: { existing?: Profile 
         <div className="in">
           {step === 'injuries' && d.goal !== 'rehab' && d.injuries.length === 0
             ? <button className="btn" onClick={next}>Nothing hurts. Next</button>
-            : <button className="btn" disabled={!valid[step]} onClick={next}>{step === 'review' ? (existing ? 'Rebuild my plan' : 'Build my plan') : 'Next'}</button>}
+            : <button className="btn" disabled={!valid[step]} onClick={next}>{step === 'review' ? (d.goal === 'free' ? 'Start training' : existing?.goal !== 'free' && existing ? 'Rebuild my plan' : 'Build my plan') : 'Next'}</button>}
         </div>
       </div>
     </div>

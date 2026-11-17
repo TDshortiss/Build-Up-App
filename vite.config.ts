@@ -8,8 +8,12 @@ declare const process: { env: Record<string, string | undefined> };
 // BASE_PATH is set by the GitHub Pages workflow ("/Build-Up-App/" on github.io, "/" on a custom domain). Defaults to "/" for local dev.
 const base = process.env.BASE_PATH || '/';
 
+// The review build (VITE_PREVIEW=1) ships as one script so it can be inlined into a single preview page.
+const preview = process.env.VITE_PREVIEW === '1';
+
 export default defineConfig({
   base,
+  build: preview ? { rollupOptions: { output: { codeSplitting: false } } } : undefined,
   plugins: [
     react(),
     VitePWA({

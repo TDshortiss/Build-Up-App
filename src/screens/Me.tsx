@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Seg } from '../components/ui';
+import { Flame, RankBadge } from '../components/visuals';
+import { levelInfo, type Progress } from '../engine/progress';
+import { setTheme, useTheme, type Theme } from '../state/theme';
 import { INJURY } from '../data/injuries';
 import { SPORT } from '../data/sports';
 import { DAY_SHORT, fmtShort } from '../engine/dates';
@@ -8,10 +11,15 @@ import { deleteAccount, signOut, type Session } from '../state/session';
 import { update } from '../state/store';
 import { cloudEnabled } from '../state/supabase';
 
-const GOAL_LABEL = { rehab: 'Injury rehab', offseason: 'Off-season', inseason: 'In-season', general: 'General training' };
+const GOAL_LABEL = { rehab: 'Injury rehab', offseason: 'Off-season', inseason: 'In-season', general: 'General training', free: 'Your own workouts' };
 
-export function Me({ state, session, onEdit, install }: { state: AppState; session: Session; onEdit: () => void; install: { can: boolean; prompt: () => void; ios: boolean } }) {
+export function Me({ state, session, progress, onEdit, onRank, onStreak, install }: {
+  state: AppState; session: Session; progress: Progress; onEdit: () => void; onRank: () => void; onStreak: () => void;
+  install: { can: boolean; prompt: () => void; ios: boolean };
+}) {
   const p = state.profile!;
+  const theme = useTheme();
+  const info = levelInfo(progress.xp);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -40,7 +48,20 @@ export function Me({ state, session, onEdit, install }: { state: AppState; sessi
           <h1>{p.name}</h1>
         </div>
       </header>
+      <div className="me-stats">
+        <button className="card tight" onClick={onRank}><RankBadge level={info.level} size={34} /><span><b>{info.name}</b><small>{progress.xp.toLocaleString()} XP</small></span></button>
+        <button className="card tight" onClick={onStreak}><Flame lit={progress.streak.count > 0} size={30} /><span><b>{progress.streak.count} days</b><small>Best {progress.streak.best}</small></span></button>
+        <div className="card tight"><span className="me-num mono">{progress.records.length}</span><span><b>Workouts</b><small>all time</small></span></div>
+      </div>
       <div className="me-grid">
+        {p.goal === 'free' ? (
+          <section className="card">
+            <h3>Your training</h3>
+            <p className="muted" style={{ fontSize: 15 }}>You're building your own workouts. Want Build Up to write a plan for your sport, season or injury instead? Your workouts, XP and streak all stay.</p>
+            <dl className="kv"><dt>Equipment</dt><dd>{{ gym: 'Full gym', home: 'Home gear', bodyweight: 'No equipment' }[p.equipment]}</dd></dl>
+            <button className="btn ghost" onClick={onEdit}>Get a plan built for me</button>
+          </section>
+        ) : (
         <section className="card">
           <h3>Your answers</h3>
           <dl className="kv">
@@ -55,9 +76,13 @@ export function Me({ state, session, onEdit, install }: { state: AppState; sessi
           <button className="btn ghost" onClick={onEdit}>Change answers & rebuild plan</button>
           <p className="fine">Your workout history and rehab progress are kept when you rebuild.</p>
         </section>
+        )}
 
         <section className="card">
           <h3>Settings</h3>
+          <div className="row"><span style={{ flex: 1 }}>Appearance</span>
+            <Seg<Theme> label="Appearance" value={theme} options={[['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']]} onChange={setTheme} />
+          </div>
           <div className="row"><span style={{ flex: 1 }}>Weights</span>
             <Seg<Units> label="Weight units" value={p.units} options={[['lb', 'lb'], ['kg', 'kg']]} onChange={units => update(s => ({ ...s, profile: { ...s.profile!, units } }))} />
           </div>
@@ -72,13 +97,12 @@ export function Me({ state, session, onEdit, install }: { state: AppState; sessi
 
         <section className="card pro">
           <div className="row"><h3 style={{ flex: 1 }}>{session.tier === 'pro' ? 'Pro' : 'Free plan'}</h3><span className="pill">{session.tier === 'pro' ? 'Active' : 'Pro coming soon'}</span></div>
-          <p style={{ fontSize: 15 }}>Everything you're using now stays free: custom plans, rehab with progress checks, tracking and sync.</p>
+          <p style={{ fontSize: 15 }}>Everything you're using now stays free: custom plans, your own workouts, rehab, progress charts, ranks and sync.</p>
           {session.tier !== 'pro' && (<>
             <b>Pro will add:</b>
             <ul>
               <li>An AI coach that adjusts your plan as you log sessions</li>
               <li>Ask questions about any exercise or injury</li>
-              <li>Progress charts for every lift</li>
               <li>More sports and injuries, and multiple plans at once</li>
             </ul>
           </>)}
