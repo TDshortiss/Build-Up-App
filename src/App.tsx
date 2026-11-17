@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ConfirmHost, ask } from './components/ConfirmHost';
+import { BANNER_KEY, hasSeenInstallPrompt, InstallSheet, useInstall } from './components/InstallPrompt';
 import { LevelUp, RankSheet, StreakSheet } from './components/RankSheet';
 import { Close, Logo, Seg, TabIcon } from './components/ui';
 import { Flame, RankBadge } from './components/visuals';
@@ -23,20 +24,6 @@ import { useAppState } from './state/store';
 
 type Tab = 'home' | 'plan' | 'workouts' | 'rehab' | 'library' | 'me';
 const LEGAL: LegalPage[] = ['terms', 'privacy', 'disclaimer'];
-
-interface InstallEvent extends Event { prompt: () => Promise<void> }
-
-function useInstall() {
-  const [evt, setEvt] = useState<InstallEvent | null>(null);
-  useEffect(() => {
-    const on = (e: Event) => { e.preventDefault(); setEvt(e as InstallEvent); };
-    window.addEventListener('beforeinstallprompt', on);
-    return () => window.removeEventListener('beforeinstallprompt', on);
-  }, []);
-  const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone;
-  return { can: !!evt && !standalone, ios, prompt: () => { void evt?.prompt(); setEvt(null); } };
-}
 
 function useHash(): string {
   const [hash, setHash] = useState(() => window.location.hash.slice(1));
@@ -62,7 +49,8 @@ export function App() {
   const [focus, setFocus] = useState<{ week: number; day: number } | null>(null);
   const [editing, setEditing] = useState(false);
   const [auth, setAuth] = useState<'signup' | 'signin' | null>(null);
-  const [installDismissed, setInstallDismissed] = useState(() => readFlag('build-up:install-dismissed'));
+  const [installDismissed, setInstallDismissed] = useState(() => readFlag(BANNER_KEY));
+  const [installOpen, setInstallOpen] = useState(false);
   const [sheet, setSheet] = useState<'rank' | 'streak' | null>(null);
   const [workoutOpen, setWorkoutOpen] = useState(false);
   const [summary, setSummary] = useState<{ id: string; xpBefore?: number } | null>(null);
@@ -71,6 +59,16 @@ export function App() {
   const active = activeSession(state);
 
   useEffect(() => { window.scrollTo(0, 0); }, [tab]);
+  // Once someone has an account and lands in the app, ask them (once per device) to add it to their Home Screen.
+  // Phones only, never inside the installed app. Android gets a moment for the browser's install offer to arrive.
+  const inApp = session.status !== 'loading' && session.status !== 'signed-out' && !!state.profile
+    && !(!state.plan && state.profile.goal !== 'free') && !editing;
+  const wantsInstall = inApp && install.available && install.platform !== 'desktop' && !hasSeenInstallPrompt();
+  useEffect(() => {
+    if (!wantsInstall) return;
+    const t = setTimeout(() => setInstallOpen(true), install.platform === 'android' && !install.can ? 2500 : 900);
+    return () => clearTimeout(t);
+  }, [wantsInstall, install.platform, install.can, install.forcedTick]);
   // Nobody needs a "level up" for the starting rank.
   useEffect(() => {
     if (state.profile && state.seenLevel === undefined && level === 0) update(s => ({ ...s, seenLevel: 0 }));
@@ -112,7 +110,7 @@ export function App() {
     ['library', 'Exercises'],
   ];
   const current: Tab = tab === 'plan' && !state.plan ? 'home' : tab;
-  const showInstall = !installDismissed && (install.can || install.ios) && current === 'home';
+  const showInstall = !installDismissed && !installOpen && install.available && current === 'home';
   const dismissInstall = () => {
     setInstallDismissed(true);
     try { localStorage.setItem('build-up:install-dismissed', '1'); } catch { /* ignore */ }
@@ -168,8 +166,8 @@ export function App() {
       {showInstall && (
         <div className="wrap" style={{ paddingBottom: 0 }}>
           <div className="banner" style={{ marginBottom: 0 }}>
-            <span style={{ flex: 1 }}>{install.ios ? <>Install Build Up: tap <b>Share</b>, then <b>Add to Home Screen</b>.</> : 'Install Build Up on your home screen for quick access.'}</span>
-            {install.can && <button className="btn" onClick={install.prompt}>Install</button>}
+            <span style={{ flex: 1 }}>Add Build Up to your Home Screen for one-tap training.</span>
+            <button className="btn" onClick={() => setInstallOpen(true)}>{install.can ? 'Install' : 'Show me'}</button>
             <button className="x" onClick={dismissInstall} aria-label="Dismiss"><Close /></button>
           </div>
         </div>
@@ -190,7 +188,7 @@ export function App() {
       {current === 'workouts' && <Workouts state={state} progress={progress} tier={tier} onStart={startWorkout} onOpenSession={id => setSummary({ id })} />}
       {current === 'rehab' && <Rehab state={state} />}
       {current === 'library' && <Library tier={tier} />}
-      {current === 'me' && <Me state={state} session={session} progress={progress} onEdit={() => setEditing(true)} onRank={() => setSheet('rank')} onStreak={() => setSheet('streak')} install={install} />}
+      {current === 'me' && <Me state={state} session={session} progress={progress} onEdit={() => setEditing(true)} onRank={() => setSheet('rank')} onStreak={() => setSheet('streak')} install={install} onInstall={() => setInstallOpen(true)} />}
 
       {active && !workoutOpen && (
         <button className="resume" onClick={() => setWorkoutOpen(true)}>
@@ -204,6 +202,7 @@ export function App() {
       {summary && <SessionSummary id={summary.id} state={state} justFinished={summary.xpBefore !== undefined ? { xpBefore: summary.xpBefore } : undefined} onClose={() => setSummary(null)} />}
       {sheet === 'rank' && <RankSheet progress={progress} onClose={() => setSheet(null)} />}
       {sheet === 'streak' && <StreakSheet progress={progress} onClose={() => setSheet(null)} />}
+      {installOpen && !workoutOpen && !summary && !showLevelUp && <InstallSheet install={install} onClose={() => { setInstallOpen(false); setInstallDismissed(true); }} />}
       <ConfirmHost />
       {showLevelUp && <LevelUp level={level} first={state.seenLevel === undefined} onClose={() => update(s => ({ ...s, seenLevel: level }))} />}
     </div>

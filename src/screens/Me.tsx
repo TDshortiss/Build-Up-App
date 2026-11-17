@@ -13,9 +13,10 @@ import { cloudEnabled } from '../state/supabase';
 
 const GOAL_LABEL = { rehab: 'Injury rehab', offseason: 'Off-season', inseason: 'In-season', general: 'General training', free: 'Your own workouts' };
 
-export function Me({ state, session, progress, onEdit, onRank, onStreak, install }: {
+export function Me({ state, session, progress, onEdit, onRank, onStreak, install, onInstall }: {
   state: AppState; session: Session; progress: Progress; onEdit: () => void; onRank: () => void; onStreak: () => void;
-  install: { can: boolean; prompt: () => void; ios: boolean };
+  install: { available: boolean; can: boolean };
+  onInstall: () => void;
 }) {
   const p = state.profile!;
   const theme = useTheme();
@@ -91,8 +92,7 @@ export function Me({ state, session, progress, onEdit, onRank, onStreak, install
               <button className="linkbtn" onClick={() => update(s => ({ ...s, swaps: {} }))}>Reset swaps</button>
             </div>
           )}
-          {install.can && <button className="btn dark" onClick={install.prompt}>Install the app</button>}
-          {install.ios && <p className="note">To install on iPhone: tap the Share button in Safari, then <b>Add to Home Screen</b>.</p>}
+          {install.available && <button className="btn dark" onClick={onInstall}>{install.can ? 'Install the app' : 'Add to Home Screen'}</button>}
         </section>
 
         <section className="card pro">
