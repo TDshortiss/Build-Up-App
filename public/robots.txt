@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /fall-line/
+Disallow: /ig/
+Disallow: /tt/
 
 Sitemap: https://www.builduptraining.com/sitemap.xml
