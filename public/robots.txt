@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /fall-line/
+
+Sitemap: https://www.builduptraining.com/sitemap.xml
