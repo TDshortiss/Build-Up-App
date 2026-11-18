@@ -36,6 +36,7 @@ jobs:
           else
             echo "::warning::VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not found. Building in device-only mode (no logins)."
           fi
+          if [ -n "$VITE_CF_ANALYTICS_TOKEN" ]; then echo "Cloudflare Web Analytics on."; else echo "Cloudflare Web Analytics off (no VITE_CF_ANALYTICS_TOKEN)."; fi
           echo "Building for ${{ steps.pages.outputs.base_url }}/"
           npm run build
         env:
@@ -43,6 +44,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL || secrets.VITE_SUPPORT_EMAIL }}
+          VITE_CF_ANALYTICS_TOKEN: ${{ vars.VITE_CF_ANALYTICS_TOKEN || secrets.VITE_CF_ANALYTICS_TOKEN }}
       # Keep the original Fall Line program reachable at /fall-line/.
       - run: mkdir -p dist/fall-line && cp fall-line/index.html dist/fall-line/index.html
       - uses: actions/upload-pages-artifact@v3

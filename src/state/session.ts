@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type { Session as SbSession } from '@supabase/supabase-js';
+import { signupSource } from './attribution';
 import { appUrl, cloudEnabled, supabase } from './supabase';
 import { emptyState, getState, loadFor, mergeStates, migrate, onLocalChange, replaceState, unload } from './store';
 import type { AppState } from '../engine/types';
@@ -147,7 +148,9 @@ function friendly(msg: string): string {
 
 export async function signUp(email: string, password: string): Promise<{ error: string | null; needsConfirm: boolean }> {
   if (!supabase) return { error: 'Accounts are not set up yet.', needsConfirm: false };
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: appUrl() } });
+  // "src" (which link brought them, if any) is copied onto their account by the handle_new_user trigger.
+  const src = signupSource();
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: appUrl(), data: src ? { src } : undefined } });
   if (error) return { error: friendly(error.message), needsConfirm: false };
   return { error: null, needsConfirm: !data.session };
 }

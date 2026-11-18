@@ -61,6 +61,8 @@ function Privacy() {
     <p>Your email address and password (stored securely by our authentication provider, never readable by us), the answers you give during setup (name, goal, sport, injuries, schedule, equipment, experience and age range), your generated plan, and what you log: completed exercises, weights, pain ratings, effort and notes.</p>
     <h2>Why</h2>
     <p>Only to run the app: to build your plan, adjust your rehab, and sync your progress across your devices. We don't sell your data and we don't use it for advertising.</p>
+    <h2>How people find us</h2>
+    <p>We count visits without cookies, using Cloudflare Web Analytics, which doesn't identify you or follow you across other websites. If you arrive through one of our links (for example from our Instagram or TikTok) or from another website, we note that link and, if you sign up, save it with your account so we know which posts help people find Build Up.</p>
     <h2>Health information</h2>
     <p>Injury and pain information is sensitive. It is stored in your account, protected so that only you can read it, and used only to tailor your training.</p>
     <h2>Where it's stored</h2>
