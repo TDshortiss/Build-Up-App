@@ -18,7 +18,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['icon.svg', 'favicon.ico', 'favicon-96.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Build Up',
         short_name: 'Build Up',
