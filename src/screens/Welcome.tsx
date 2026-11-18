@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Chevron, Effort } from '../components/ui';
+import { pendingInvite } from '../state/referrals';
 import { sendReset, setNewPassword, signIn, signUp } from '../state/session';
 
 export function Welcome({ onStart }: { onStart: (mode: 'signup' | 'signin') => void }) {
@@ -15,6 +16,7 @@ export function Welcome({ onStart }: { onStart: (mode: 'signup' | 'signin') => v
         </ul>
       </div>
       <div className="stack">
+        {pendingInvite() && <p className="invite-banner"><b>A friend invited you.</b> Create an account and finish your first workout, and you both get bonus XP.</p>}
         <button className="btn block" onClick={() => onStart('signup')}>Get started</button>
         <button className="btn ghost block" onClick={() => onStart('signin')}>I already have an account</button>
         <p className="fine" style={{ textAlign: 'center' }}>
@@ -78,6 +80,7 @@ export function AuthScreen({ initial, onBack }: { initial: Mode; onBack?: () => 
       {onBack && mode !== 'newpass' && <button type="button" className="back" onClick={onBack}><Chevron dir="left" /> Back</button>}
       <h2>{titles[mode]}</h2>
       {mode === 'signup' && <p className="muted">Your plan and progress save to your account, so they follow you to any device.</p>}
+      {mode === 'signup' && pendingInvite() && <p className="invite-banner">You're joining with invite code <b className="mono">{pendingInvite()}</b>.</p>}
       {mode !== 'newpass' && (
         <div className="field">
           <label htmlFor="email">Email</label>

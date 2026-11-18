@@ -308,6 +308,22 @@ export interface WorkoutSession {
   deleted?: boolean;
 }
 
+/** One side of an invite, as the server reports it. */
+export interface InviteLink {
+  /** First name only, may be empty. */
+  name: string;
+  joinedAt: string;
+  /** When the invited friend finished their first workout. The invite counts from then. */
+  activeAt: string | null;
+}
+
+/** Invite-a-friend status, refreshed from the server (my_referrals) each time the app loads. */
+export interface Referrals {
+  code: string | null;
+  friends: InviteLink[];
+  invitedBy: InviteLink | null;
+}
+
 export interface AppState {
   ver: number;
   updatedAt: number;
@@ -324,4 +340,5 @@ export interface AppState {
   sessions: Record<string, WorkoutSession>;
   /** Highest level the user has been shown a level-up for. */
   seenLevel?: number;
+  referrals?: Referrals;
 }

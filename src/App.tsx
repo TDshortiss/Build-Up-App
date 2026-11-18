@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ConfirmHost, ask } from './components/ConfirmHost';
 import { BANNER_KEY, hasSeenInstallPrompt, InstallSheet, useInstall } from './components/InstallPrompt';
+import { InviteSheet } from './components/InviteSheet';
 import { LevelUp, RankSheet, StreakSheet } from './components/RankSheet';
+import { cardData, ShareSheet, type CardData } from './components/ShareCard';
 import { Close, Logo, Seg, TabIcon } from './components/ui';
 import { Flame, RankBadge } from './components/visuals';
 import { computeProgress, levelInfo, type WorkoutRecord } from './engine/progress';
@@ -51,7 +53,8 @@ export function App() {
   const [auth, setAuth] = useState<'signup' | 'signin' | null>(null);
   const [installDismissed, setInstallDismissed] = useState(() => readFlag(BANNER_KEY));
   const [installOpen, setInstallOpen] = useState(false);
-  const [sheet, setSheet] = useState<'rank' | 'streak' | null>(null);
+  const [sheet, setSheet] = useState<'rank' | 'streak' | 'invite' | null>(null);
+  const [card, setCard] = useState<CardData | null>(null);
   const [workoutOpen, setWorkoutOpen] = useState(false);
   const [summary, setSummary] = useState<{ id: string; xpBefore?: number } | null>(null);
   const progress = useMemo(() => computeProgress(state), [state]);
@@ -131,6 +134,10 @@ export function App() {
     }
   };
   const info = levelInfo(progress.xp);
+  const share = (kind: 'rank' | 'streak', fresh?: boolean) => {
+    setSheet(null);
+    setCard(cardData(kind, profile.name, progress, level, state.referrals?.code, fresh));
+  };
   const showLevelUp = !workoutOpen && !summary && (state.seenLevel === undefined ? level > 0 : level > state.seenLevel);
 
   return (
@@ -174,7 +181,7 @@ export function App() {
       )}
 
       {current === 'home' && (
-        <Home state={state} progress={progress} onRank={() => setSheet('rank')} onStreak={() => setSheet('streak')}
+        <Home state={state} progress={progress} onInvite={() => setSheet('invite')} onRank={() => setSheet('rank')} onStreak={() => setSheet('streak')}
           onPlan={() => go('plan')} onStartWorkout={startWorkout} onWorkouts={() => go('workouts')} onOpenRecord={openRecord} onGetPlan={() => setEditing(true)} />
       )}
       {current === 'plan' && (<>
@@ -188,7 +195,7 @@ export function App() {
       {current === 'workouts' && <Workouts state={state} progress={progress} tier={tier} onStart={startWorkout} onOpenSession={id => setSummary({ id })} />}
       {current === 'rehab' && <Rehab state={state} />}
       {current === 'library' && <Library tier={tier} />}
-      {current === 'me' && <Me state={state} session={session} progress={progress} onEdit={() => setEditing(true)} onRank={() => setSheet('rank')} onStreak={() => setSheet('streak')} install={install} onInstall={() => setInstallOpen(true)} />}
+      {current === 'me' && <Me state={state} session={session} progress={progress} onEdit={() => setEditing(true)} onRank={() => setSheet('rank')} onStreak={() => setSheet('streak')} install={install} onInstall={() => setInstallOpen(true)} onInvite={() => setSheet('invite')} />}
 
       {active && !workoutOpen && (
         <button className="resume" onClick={() => setWorkoutOpen(true)}>
@@ -200,11 +207,14 @@ export function App() {
           onFinished={id => { setWorkoutOpen(false); setSummary({ id, xpBefore: progress.xp }); }} />
       )}
       {summary && <SessionSummary id={summary.id} state={state} justFinished={summary.xpBefore !== undefined ? { xpBefore: summary.xpBefore } : undefined} onClose={() => setSummary(null)} />}
-      {sheet === 'rank' && <RankSheet progress={progress} onClose={() => setSheet(null)} />}
-      {sheet === 'streak' && <StreakSheet progress={progress} onClose={() => setSheet(null)} />}
+      {sheet === 'rank' && <RankSheet progress={progress} onClose={() => setSheet(null)} onShare={() => share('rank')} />}
+      {sheet === 'streak' && <StreakSheet progress={progress} onClose={() => setSheet(null)} onShare={() => share('streak')} />}
+      {sheet === 'invite' && <InviteSheet referrals={state.referrals} signedIn={session.status === 'signed-in'} onClose={() => setSheet(null)} />}
+      {card && <ShareSheet data={card} onClose={() => setCard(null)} />}
       {installOpen && !workoutOpen && !summary && !showLevelUp && <InstallSheet install={install} onClose={() => { setInstallOpen(false); setInstallDismissed(true); }} />}
       <ConfirmHost />
-      {showLevelUp && <LevelUp level={level} first={state.seenLevel === undefined} onClose={() => update(s => ({ ...s, seenLevel: level }))} />}
+      {showLevelUp && <LevelUp level={level} first={state.seenLevel === undefined} onClose={() => update(s => ({ ...s, seenLevel: level }))}
+        onShare={() => { const first = state.seenLevel === undefined; update(s => ({ ...s, seenLevel: level })); share('rank', !first); }} />}
     </div>
   );
 }

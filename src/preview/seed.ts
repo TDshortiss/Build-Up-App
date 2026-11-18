@@ -60,6 +60,14 @@ export function sampleState(): AppState {
   });
   return {
     ...emptyState(), ver: STATE_VERSION, updatedAt: Date.now(), profile, plan, logs, lastWeight, sessions, acceptedTermsAt: new Date().toISOString(),
+    referrals: {
+      code: 'K7RB4M',
+      friends: [
+        { name: 'Jordan', joinedAt: `${addDays(t, -12)}T15:00:00.000Z`, activeAt: `${addDays(t, -11)}T19:00:00.000Z` },
+        { name: 'Maya', joinedAt: `${addDays(t, -1)}T15:00:00.000Z`, activeAt: null },
+      ],
+      invitedBy: null,
+    },
     workouts: [{ id: 'sample-upper', name: 'Upper Body', items: arms.items, createdAt: start, updatedAt: Date.now() }],
   };
 }

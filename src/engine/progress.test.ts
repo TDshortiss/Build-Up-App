@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyState } from '../state/store';
 import { addDays } from './dates';
-import { computeProgress, levelInfo, levelName, xpForLevel } from './progress';
+import { computeProgress, levelInfo, levelName, REFERRAL, xpForLevel } from './progress';
 import type { AppState, Profile, WorkoutSession } from './types';
 
 const T = '2026-11-17';
@@ -95,5 +95,24 @@ describe('ranks', () => {
     const per = [1, 3, 6, 12, 18, 24].map(l => xpForLevel(l + 1) - xpForLevel(l));
     for (let i = 1; i < per.length; i++) expect(per[i]).toBeGreaterThan(per[i - 1]);
     expect(levelInfo(xpForLevel(9)).name).toBe('Silver I');
+  });
+});
+
+describe('invites', () => {
+  const friend = (n: number, active: boolean) => ({ name: `F${n}`, joinedAt: '2026-11-01T10:00:00Z', activeAt: active ? `2026-11-${String(n + 1).padStart(2, '0')}T10:00:00Z` : null });
+
+  it('rewards the inviter only for friends who finished a workout, up to the cap', () => {
+    const friends = [friend(1, false), ...Array.from({ length: REFERRAL.maxFriends + 2 }, (_, i) => friend(i + 2, true))];
+    const p = computeProgress({ ...emptyState(), profile, referrals: { code: 'ABC234', friends, invitedBy: null } }, T);
+    expect(p.xp).toBe(REFERRAL.inviter * REFERRAL.maxFriends);
+    expect(p.events.some(e => e.label === 'F1 joined')).toBe(false);
+  });
+
+  it('rewards the invited friend after their first workout', () => {
+    const base = { ...emptyState(), profile };
+    expect(computeProgress({ ...base, referrals: { code: 'X', friends: [], invitedBy: { ...friend(1, false), name: 'Sam' } } }, T).xp).toBe(0);
+    const p = computeProgress({ ...base, referrals: { code: 'X', friends: [], invitedBy: { ...friend(1, true), name: 'Sam' } } }, T);
+    expect(p.xp).toBe(REFERRAL.friend);
+    expect(p.events[0].detail).toBe('Invited by Sam');
   });
 });
