@@ -5,7 +5,7 @@ import { Chevron } from '../components/ui';
  * and set VITE_SUPPORT_EMAIL so users have a way to reach you.
  */
 
-const UPDATED = 'October 26, 2026';
+const UPDATED = 'November 18, 2026';
 const EMAIL = (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined) || '';
 const contact = EMAIL ? <a href={`mailto:${EMAIL}`}>{EMAIL}</a> : 'the support contact listed on our website';
 
@@ -61,6 +61,8 @@ function Privacy() {
     <p>Your email address and password (stored securely by our authentication provider, never readable by us), the answers you give during setup (name, goal, sport, injuries, schedule, equipment, experience and age range), your generated plan, and what you log: completed exercises, weights, pain ratings, effort and notes.</p>
     <h2>Why</h2>
     <p>Only to run the app: to build your plan, adjust your rehab, and sync your progress across your devices. We don't sell your data and we don't use it for advertising.</p>
+    <h2>Invites</h2>
+    <p>If you join through a friend's invite link, we record that they invited you. They see your first name, when you joined and whether you've finished a workout, and nothing else. If you invite friends, you see the same about them.</p>
     <h2>Health information</h2>
     <p>Injury and pain information is sensitive. It is stored in your account, protected so that only you can read it, and used only to tailor your training.</p>
     <h2>Where it's stored</h2>

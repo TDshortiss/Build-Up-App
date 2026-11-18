@@ -4,7 +4,7 @@ import { Effort } from '../components/ui';
 import { Flame, LineChart, MonthCalendar, RankBadge, type DayMark } from '../components/visuals';
 import { EX } from '../data/exercises';
 import { daysBetween, fmtLong, fmtShort, today } from '../engine/dates';
-import { isRestDay, levelInfo, levelName, liftHistory, plannedTrainingDays, type Progress, type WorkoutRecord } from '../engine/progress';
+import { isRestDay, REFERRAL, levelInfo, levelName, liftHistory, plannedTrainingDays, type Progress, type WorkoutRecord } from '../engine/progress';
 import type { AppState, CustomWorkout } from '../engine/types';
 import { planPosition } from './Today';
 
@@ -18,8 +18,8 @@ function ago(date: string): string {
   return n === 0 ? 'Today' : n === 1 ? 'Yesterday' : n < 7 ? `${n} days ago` : fmtShort(date);
 }
 
-export function Home({ state, progress, onRank, onStreak, onPlan, onStartWorkout, onWorkouts, onOpenRecord, onGetPlan }: {
-  state: AppState; progress: Progress;
+export function Home({ state, progress, onInvite, onRank, onStreak, onPlan, onStartWorkout, onWorkouts, onOpenRecord, onGetPlan }: {
+  state: AppState; progress: Progress; onInvite: () => void;
   onRank: () => void; onStreak: () => void; onPlan: () => void;
   onStartWorkout: (w: CustomWorkout | null) => void; onWorkouts: () => void;
   onOpenRecord: (r: WorkoutRecord) => void; onGetPlan: () => void;
@@ -103,6 +103,17 @@ export function Home({ state, progress, onRank, onStreak, onPlan, onStartWorkout
             <p className="muted">Nothing logged yet. Your last workout will show up here with what you did and the XP you earned.</p>
           )}
         </section>
+
+        <button className="card invite-strip" onClick={onInvite}>
+          <span className="invite-icon" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M18 8v6M15 11h6" /></svg>
+          </span>
+          <span className="stack" style={{ gap: 2, flex: 1, textAlign: 'left' }}>
+            <b>Train with a friend</b>
+            <span className="fine">Invite someone. When they finish a workout you get +{REFERRAL.inviter} XP and they get +{REFERRAL.friend}.</span>
+          </span>
+          <span className="linkbtn">Invite</span>
+        </button>
 
         {profile.goal === 'free' && (
           <section className="card plan-cta">

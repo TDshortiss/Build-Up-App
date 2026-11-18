@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './App';
+import { captureInvite } from './state/referrals';
 import { initSession } from './state/session';
 import { applyTheme } from './state/theme';
 import './styles.css';
@@ -9,6 +10,7 @@ import './styles.css';
 const PREVIEW = import.meta.env.VITE_PREVIEW === '1';
 
 applyTheme();
+captureInvite();
 initSession();
 // Installed apps (iPhone especially) often resume from memory without reloading, so the browser never checks for a
 // new version. Check whenever the app comes back to the foreground, and hourly while it stays open. With autoUpdate,

@@ -62,3 +62,5 @@ $$;
 
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+-- Invite a friend (added 2026-11-18): see supabase/migrations/2026-11-18-referrals.sql, run after this file.

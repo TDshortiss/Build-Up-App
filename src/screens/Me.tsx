@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Seg } from '../components/ui';
 import { Flame, RankBadge } from '../components/visuals';
-import { levelInfo, type Progress } from '../engine/progress';
+import { levelInfo, REFERRAL, type Progress } from '../engine/progress';
 import { setTheme, useTheme, type Theme } from '../state/theme';
 import { INJURY } from '../data/injuries';
 import { SPORT } from '../data/sports';
@@ -13,10 +13,11 @@ import { cloudEnabled } from '../state/supabase';
 
 const GOAL_LABEL = { rehab: 'Injury rehab', offseason: 'Off-season', inseason: 'In-season', general: 'General training', free: 'Your own workouts' };
 
-export function Me({ state, session, progress, onEdit, onRank, onStreak, install, onInstall }: {
+export function Me({ state, session, progress, onEdit, onRank, onStreak, install, onInstall, onInvite }: {
   state: AppState; session: Session; progress: Progress; onEdit: () => void; onRank: () => void; onStreak: () => void;
   install: { available: boolean; can: boolean };
   onInstall: () => void;
+  onInvite: () => void;
 }) {
   const p = state.profile!;
   const theme = useTheme();
@@ -78,6 +79,13 @@ export function Me({ state, session, progress, onEdit, onRank, onStreak, install
           <p className="fine">Your workout history and rehab progress are kept when you rebuild.</p>
         </section>
         )}
+
+        <section className="card invite-card">
+          <h3>Invite friends</h3>
+          <p className="muted" style={{ fontSize: 15 }}>Get <b>+{REFERRAL.inviter} XP</b> for every friend who joins and finishes a workout. They get +{REFERRAL.friend} XP too.</p>
+          {(state.referrals?.friends.length ?? 0) > 0 && <p className="fine">{state.referrals!.friends.length} joined so far · {state.referrals!.friends.filter(f => f.activeAt).length} counted</p>}
+          <button className="btn" onClick={onInvite}>Invite friends</button>
+        </section>
 
         <section className="card">
           <h3>Settings</h3>
