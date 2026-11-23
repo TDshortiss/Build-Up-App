@@ -36,32 +36,10 @@ drop policy if exists "Read own account" on public.accounts;
 create policy "Read own account" on public.accounts
   for select using (auth.uid() = user_id);
 
--- Where each account came from (the link they arrived through, if any). Saved at sign-up from the app's
--- "src" sign-up metadata. Users can read it on their own row but can't change it.
-alter table public.accounts
-  add column if not exists signup_source text,
-  add column if not exists signup_medium text,
-  add column if not exists signup_campaign text,
-  add column if not exists signup_content text,
-  add column if not exists signup_referrer text,
-  add column if not exists signup_landing text;
-
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
-declare
-  src jsonb := case when jsonb_typeof(new.raw_user_meta_data -> 'src') = 'object' then new.raw_user_meta_data -> 'src' else '{}'::jsonb end;
 begin
-  insert into public.accounts (user_id, signup_source, signup_medium, signup_campaign, signup_content, signup_referrer, signup_landing)
-  values (
-    new.id,
-    nullif(left(lower(trim(src ->> 'source')), 100), ''),
-    nullif(left(lower(trim(src ->> 'medium')), 100), ''),
-    nullif(left(lower(trim(src ->> 'campaign')), 100), ''),
-    nullif(left(lower(trim(src ->> 'content')), 100), ''),
-    nullif(left(lower(trim(src ->> 'referrer')), 100), ''),
-    nullif(left(trim(src ->> 'landing'), 200), '')
-  )
-  on conflict do nothing;
+  insert into public.accounts (user_id) values (new.id) on conflict do nothing;
   return new;
 end;
 $$;
@@ -85,47 +63,5 @@ $$;
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
 
--- Arrivals through a tagged link (?utm_source=…, builduptraining.com/ig) or from another website.
--- No cookies, ids or IP addresses: just which link, and when. Anyone can add a row; nobody can read
--- them through the app's API. Read them in the Supabase dashboard (see signup_sources below).
-create table if not exists public.visits (
-  id bigint generated always as identity primary key,
-  created_at timestamptz not null default now(),
-  source text not null check (char_length(source) between 1 and 100),
-  medium text check (char_length(medium) <= 100),
-  campaign text check (char_length(campaign) <= 100),
-  content text check (char_length(content) <= 100),
-  referrer text check (char_length(referrer) <= 100),
-  landing text check (char_length(landing) <= 200)
-);
-
-alter table public.visits enable row level security;
-
-drop policy if exists "Anyone can log a visit" on public.visits;
-create policy "Anyone can log a visit" on public.visits
-  for insert to anon, authenticated with check (true);
-
-revoke all on public.visits from anon, authenticated;
-grant insert (source, medium, campaign, content, referrer, landing) on public.visits to anon, authenticated;
-
--- Visits and sign-ups per link. In the dashboard: SQL Editor → `select * from signup_sources;`
--- "direct" sign-ups came without a tracked link (typed the address, word of mouth, or older accounts).
-create or replace view public.signup_sources with (security_invoker = true) as
-select
-  coalesce(source, 'direct') as source,
-  coalesce(medium, '') as medium,
-  coalesce(campaign, '') as campaign,
-  coalesce(content, '') as content,
-  sum(visits)::int as visits,
-  sum(signups)::int as signups
-from (
-  select source, medium, campaign, content, count(*) as visits, 0 as signups
-  from public.visits group by 1, 2, 3, 4
-  union all
-  select signup_source, signup_medium, signup_campaign, signup_content, 0, count(*)
-  from public.accounts group by 1, 2, 3, 4
-) t
-group by 1, 2, 3, 4
-order by signups desc, visits desc;
-
-revoke all on public.signup_sources from public, anon, authenticated;
+-- Invite a friend (added 2026-11-18): see supabase/migrations/2026-11-18-referrals.sql, run after this file.
+-- Where visitors and sign-ups come from (added 2026-11-23): see supabase/migrations/2026-11-23-signup-sources.sql, run after the referrals migration.

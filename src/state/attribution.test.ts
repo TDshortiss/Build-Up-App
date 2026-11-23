@@ -32,6 +32,11 @@ describe('readArrival', () => {
     expect(readArrival(`${SITE}/`, 'https://outlook.live.com/', B)).toBeNull();
   });
 
+  it('counts friend invite links', () => {
+    expect(readArrival(`${SITE}/?invite=ABC234`, '', B)).toMatchObject({ source: 'invite', medium: 'friend' });
+    expect(cleanUrl(`${SITE}/?invite=ABC234&utm_source=x`, B)).toBe('/?invite=ABC234');
+  });
+
   it('caps long values', () => {
     const t = readArrival(`${SITE}/?utm_source=${'a'.repeat(300)}`, '', B)!;
     expect(t.source).toHaveLength(100);

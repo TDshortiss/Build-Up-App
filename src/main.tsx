@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './App';
 import { captureArrival } from './state/attribution';
+import { captureInvite } from './state/referrals';
 import { initSession } from './state/session';
 import { applyTheme } from './state/theme';
 import './styles.css';
@@ -17,12 +18,14 @@ if (!PREVIEW) {
   const cfToken = (import.meta.env.VITE_CF_ANALYTICS_TOKEN as string | undefined)?.trim();
   if (cfToken) {
     const s = document.createElement('script');
+    s.type = 'module';
     s.defer = true;
     s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
     s.dataset.cfBeacon = JSON.stringify({ token: cfToken });
     document.head.appendChild(s);
   }
 }
+captureInvite();
 initSession();
 // Installed apps (iPhone especially) often resume from memory without reloading, so the browser never checks for a
 // new version. Check whenever the app comes back to the foreground, and hourly while it stays open. With autoUpdate,

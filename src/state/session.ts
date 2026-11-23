@@ -4,6 +4,7 @@ import { signupSource } from './attribution';
 import { appUrl, cloudEnabled, supabase } from './supabase';
 import { emptyState, getState, loadFor, mergeStates, migrate, onLocalChange, replaceState, unload } from './store';
 import type { AppState } from '../engine/types';
+import { clearInvite, pendingInvite, refreshReferrals } from './referrals';
 
 /*
  * Account session and cloud sync. When Supabase isn't configured the app runs in "local" mode:
@@ -51,6 +52,13 @@ export function initSession() {
   });
   onLocalChange(() => schedulePush());
   window.addEventListener('online', () => { if (userId) void push(); });
+  // Pick up friends who joined while the app was in the background.
+  let lastRef = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !userId || Date.now() - lastRef < 60_000) return;
+    lastRef = Date.now();
+    void refreshReferrals();
+  });
 }
 
 /*
@@ -88,6 +96,7 @@ async function handleSession(session: SbSession | null) {
   set({ status: 'signed-in', user: { id: user.id, email: user.email ?? '' } });
   await pull();
   void loadTier();
+  void refreshReferrals();
 }
 
 async function pull() {
@@ -127,6 +136,9 @@ async function push(): Promise<boolean> {
   const { error } = await supabase.from('user_state')
     .upsert({ user_id: userId, state: getState(), updated_at: new Date().toISOString() });
   set({ sync: error ? (navigator.onLine ? 'error' : 'offline') : 'synced' });
+  // A new user who came from an invite: once their first workout reaches the server, the invite counts.
+  const st = getState();
+  if (!error && st.profile && (!st.referrals || (st.referrals.invitedBy && !st.referrals.invitedBy.activeAt))) void refreshReferrals();
   return !error;
 }
 
@@ -146,12 +158,16 @@ function friendly(msg: string): string {
   return msg;
 }
 
-export async function signUp(email: string, password: string): Promise<{ error: string | null; needsConfirm: boolean }> {
+export async function signUp(email: string, password: string, heard?: string): Promise<{ error: string | null; needsConfirm: boolean }> {
   if (!supabase) return { error: 'Accounts are not set up yet.', needsConfirm: false };
-  // "src" (which link brought them, if any) is copied onto their account by the handle_new_user trigger.
+  // Sent with the sign-up; the handle_new_user trigger records them on the new account.
+  // invite: a friend's invite code. src: which link brought them. heard: their answer to "How did you hear about us?"
+  const invite = pendingInvite();
   const src = signupSource();
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: appUrl(), data: src ? { src } : undefined } });
+  const meta = { ...(invite ? { invite } : {}), ...(src ? { src } : {}), ...(heard ? { heard } : {}) };
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: appUrl(), data: meta } });
   if (error) return { error: friendly(error.message), needsConfirm: false };
+  clearInvite();
   return { error: null, needsConfirm: !data.session };
 }
 

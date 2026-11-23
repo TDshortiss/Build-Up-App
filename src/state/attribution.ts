@@ -70,11 +70,12 @@ export function readArrival(href: string, referrer: string, base: string, now = 
     if (r && r.host !== url.host && /^https?:$/.test(r.protocol) && !/(^|\.)(mail|outlook)\./.test(r.host)) ref = clean(r.host);
   } catch { /* unreadable referrer */ }
 
-  const source = clean(q.get('utm_source')) ?? clean(q.get('ref')) ?? short?.source ?? (ref ? siteName(ref) : undefined);
+  const invite = q.has('invite') ? 'invite' : undefined;
+  const source = clean(q.get('utm_source')) ?? clean(q.get('ref')) ?? short?.source ?? invite ?? (ref ? siteName(ref) : undefined);
   if (!source) return null;
   return {
     source,
-    medium: clean(q.get('utm_medium')) ?? short?.medium ?? (ref ? 'referral' : undefined),
+    medium: clean(q.get('utm_medium')) ?? short?.medium ?? (invite ? 'friend' : ref ? 'referral' : undefined),
     campaign: clean(q.get('utm_campaign')) ?? short?.campaign,
     content: clean(q.get('utm_content')),
     referrer: ref,

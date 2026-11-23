@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Chevron, Effort } from '../components/ui';
+import { pendingInvite } from '../state/referrals';
 import { sendReset, setNewPassword, signIn, signUp } from '../state/session';
 
 export function Welcome({ onStart }: { onStart: (mode: 'signup' | 'signin') => void }) {
@@ -15,6 +16,7 @@ export function Welcome({ onStart }: { onStart: (mode: 'signup' | 'signin') => v
         </ul>
       </div>
       <div className="stack">
+        {pendingInvite() && <p className="invite-banner"><b>A friend invited you.</b> Create an account and finish your first workout, and you both get bonus XP.</p>}
         <button className="btn block" onClick={() => onStart('signup')}>Get started</button>
         <button className="btn ghost block" onClick={() => onStart('signin')}>I already have an account</button>
         <p className="fine" style={{ textAlign: 'center' }}>
@@ -27,10 +29,23 @@ export function Welcome({ onStart }: { onStart: (mode: 'signup' | 'signin') => v
 
 type Mode = 'signup' | 'signin' | 'reset' | 'newpass';
 
+/* "How did you hear about us?" Optional. Saved with the new account so we can see which posts and places work,
+ * including ones people can't click through from (an Instagram caption, a friend at practice). */
+export const HEARD_OPTIONS: [string, string][] = [
+  ['instagram', 'Instagram'],
+  ['tiktok', 'TikTok'],
+  ['youtube', 'YouTube'],
+  ['friend', 'A friend or teammate'],
+  ['coach', 'A coach, trainer or physio'],
+  ['search', 'Google or another search'],
+  ['other', 'Somewhere else'],
+];
+
 export function AuthScreen({ initial, onBack }: { initial: Mode; onBack?: () => void }) {
   const [mode, setMode] = useState<Mode>(initial);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [heard, setHeard] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<'confirm' | 'reset' | null>(null);
@@ -42,7 +57,7 @@ export function AuthScreen({ initial, onBack }: { initial: Mode; onBack?: () => 
     setBusy(true);
     try {
       if (mode === 'signup') {
-        const r = await signUp(email.trim(), password);
+        const r = await signUp(email.trim(), password, heard || undefined);
         if (r.error) setError(r.error); else if (r.needsConfirm) setSent('confirm');
       } else if (mode === 'signin') {
         const err = await signIn(email.trim(), password);
@@ -78,6 +93,7 @@ export function AuthScreen({ initial, onBack }: { initial: Mode; onBack?: () => 
       {onBack && mode !== 'newpass' && <button type="button" className="back" onClick={onBack}><Chevron dir="left" /> Back</button>}
       <h2>{titles[mode]}</h2>
       {mode === 'signup' && <p className="muted">Your plan and progress save to your account, so they follow you to any device.</p>}
+      {mode === 'signup' && pendingInvite() && <p className="invite-banner">You're joining with invite code <b className="mono">{pendingInvite()}</b>.</p>}
       {mode !== 'newpass' && (
         <div className="field">
           <label htmlFor="email">Email</label>
@@ -89,6 +105,15 @@ export function AuthScreen({ initial, onBack }: { initial: Mode; onBack?: () => 
           <label htmlFor="pw">{mode === 'newpass' ? 'New password' : 'Password'}</label>
           <input id="pw" className="input" type="password" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
           {mode !== 'signin' && <small>At least 8 characters.</small>}
+        </div>
+      )}
+      {mode === 'signup' && (
+        <div className="field">
+          <label htmlFor="heard">How did you hear about Build Up? <span className="muted">(optional)</span></label>
+          <select id="heard" className="input" value={heard} onChange={e => setHeard(e.target.value)}>
+            <option value="">Choose one</option>
+            {HEARD_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
         </div>
       )}
       {error && <p className="err" role="alert">{error}</p>}

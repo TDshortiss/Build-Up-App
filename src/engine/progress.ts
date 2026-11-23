@@ -147,6 +147,9 @@ export const XP = {
   /** Workouts per day that earn XP. */
   perDay: 2,
 };
+/** Invite a friend: both get XP once the friend finishes their first workout. */
+export const REFERRAL = { inviter: 300, friend: 200, maxFriends: 10 };
+
 const MILESTONE_XP: Record<number, number> = { 7: 100, 14: 150, 30: 300, 50: 400, 75: 500, 100: 750, 150: 1000, 200: 1250, 365: 2500 };
 
 export interface XpEvent { date: string; xp: number; label: string; detail?: string }
@@ -195,8 +198,21 @@ export function computeProgress(state: AppState, today = todayIso()): Progress {
       if (c.passed) events.push({ date: c.date, xp: XP.rehabStage, label: 'Rehab stage passed', detail: id.replace(/-/g, ' ') });
     }
   }
+  const ref = state.referrals;
+  if (ref) {
+    const counted = ref.friends.filter(f => f.activeAt).sort((a, b) => a.activeAt!.localeCompare(b.activeAt!)).slice(0, REFERRAL.maxFriends);
+    for (const f of counted) events.push({ date: localDate(f.activeAt!), xp: REFERRAL.inviter, label: `${f.name || 'A friend'} joined`, detail: 'Invite bonus' });
+    if (ref.invitedBy?.activeAt) events.push({ date: localDate(ref.invitedBy.activeAt), xp: REFERRAL.friend, label: 'Joined with an invite', detail: ref.invitedBy.name ? `Invited by ${ref.invitedBy.name}` : 'Welcome bonus' });
+  }
   events.sort((a, b) => b.date.localeCompare(a.date));
   return { xp: events.reduce((a, e) => a + e.xp, 0), events, byWorkout, streak: walk.streak, records, workoutDays };
+}
+
+/** Local YYYY-MM-DD for a timestamp. */
+function localDate(ts: string): string {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return ts.slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /* ---------- Ranks ---------- */

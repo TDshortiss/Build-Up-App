@@ -1,4 +1,4 @@
-import { DIVISIONS, levelInfo, levelName, RANKS, STREAK_GRACE, XP, xpForLevel, type Progress } from '../engine/progress';
+import { DIVISIONS, levelInfo, levelName, RANKS, REFERRAL, STREAK_GRACE, XP, xpForLevel, type Progress } from '../engine/progress';
 import { fmtShort } from '../engine/dates';
 import { Flame, RankBadge } from './visuals';
 import { Sheet } from './ui';
@@ -12,7 +12,7 @@ export function XpBar({ into, needed, big }: { into: number; needed: number; big
 }
 
 /** Opened from the rank icon: progress to the next level, the ranks ahead, and how XP is earned. */
-export function RankSheet({ progress, onClose }: { progress: Progress; onClose: () => void }) {
+export function RankSheet({ progress, onClose, onShare }: { progress: Progress; onClose: () => void; onShare?: () => void }) {
   const info = levelInfo(progress.xp);
   const currentRank = Math.min(Math.floor(info.level / DIVISIONS), RANKS.length - 1);
   return (
@@ -25,6 +25,7 @@ export function RankSheet({ progress, onClose }: { progress: Progress; onClose: 
           <span className="fine mono">{info.into.toLocaleString()} / {info.needed.toLocaleString()} XP · <b>{(info.needed - info.into).toLocaleString()} to {levelName(info.level + 1)}</b></span>
         </div>
       </div>
+      {onShare && <button className="btn ghost" onClick={onShare}><ShareGlyph />Share my rank</button>}
 
       <div className="stack" style={{ gap: 8 }}>
         <span className="label">Ranks</span>
@@ -53,6 +54,7 @@ export function RankSheet({ progress, onClose }: { progress: Progress; onClose: 
           <li><b>+{XP.streakPerDay}</b>Per streak day, every workout (up to +{XP.streakPerDay * XP.streakCap})</li>
           <li><b>+100</b>Streak milestones at 7, 14, 30 days and beyond (bigger each time)</li>
           <li><b>+{XP.rehabStage}</b>Pass a rehab progress check</li>
+          <li><b>+{REFERRAL.inviter}</b>A friend you invited finishes their first workout (they get +{REFERRAL.friend})</li>
         </ul>
         <p className="fine">Up to {XP.perDay} workouts a day earn XP.</p>
       </div>
@@ -71,7 +73,7 @@ export function RankSheet({ progress, onClose }: { progress: Progress; onClose: 
   );
 }
 
-export function StreakSheet({ progress, onClose }: { progress: Progress; onClose: () => void }) {
+export function StreakSheet({ progress, onClose, onShare }: { progress: Progress; onClose: () => void; onShare?: () => void }) {
   const s = progress.streak;
   const left = STREAK_GRACE - s.missed;
   return (
@@ -84,6 +86,7 @@ export function StreakSheet({ progress, onClose }: { progress: Progress; onClose
           <span className="fine">Best: {s.best} days</span>
         </div>
       </div>
+      {onShare && s.count > 0 && <button className="btn ghost" onClick={onShare}><ShareGlyph />Share my streak</button>}
       <ul className="earn">
         <li><b>1</b>Every day you finish a workout adds a day to your streak.</li>
         <li><b>{STREAK_GRACE}</b>You can miss {STREAK_GRACE} days in a row and keep it. It just won't grow.</li>
@@ -104,7 +107,7 @@ export function streakLine(p: Progress): string {
 }
 
 /** Shown once each time the user reaches a new level. */
-export function LevelUp({ level, first, onClose }: { level: number; first: boolean; onClose: () => void }) {
+export function LevelUp({ level, first, onClose, onShare }: { level: number; first: boolean; onClose: () => void; onShare?: () => void }) {
   const name = levelName(level);
   const newRank = level % DIVISIONS === 0;
   return (
@@ -117,7 +120,16 @@ export function LevelUp({ level, first, onClose }: { level: number; first: boole
           {first ? 'Your past workouts already count. Keep training to climb from here.' : newRank ? `You made it to ${name.split(' ')[0]}. The next one takes a bit more work.` : 'Keep stacking workouts to reach the next rank.'}
         </p>
         <button className="btn block" onClick={onClose}>Keep going</button>
+        {onShare && <button className="btn ghost block" onClick={onShare}><ShareGlyph />Share to your Story</button>}
       </div>
     </div>
+  );
+}
+
+export function ShareGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+    </svg>
   );
 }
