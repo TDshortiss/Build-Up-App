@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './App';
+import { captureArrival } from './state/attribution';
 import { captureInvite } from './state/referrals';
 import { initSession } from './state/session';
 import { applyTheme } from './state/theme';
@@ -10,6 +11,20 @@ import './styles.css';
 const PREVIEW = import.meta.env.VITE_PREVIEW === '1';
 
 applyTheme();
+if (!PREVIEW) {
+  captureArrival();
+  // Cloudflare Web Analytics: cookieless visit counts, top pages, referring sites, countries and devices.
+  // The token is public; it comes from the Cloudflare dashboard and is set as the VITE_CF_ANALYTICS_TOKEN repo variable.
+  const cfToken = (import.meta.env.VITE_CF_ANALYTICS_TOKEN as string | undefined)?.trim();
+  if (cfToken) {
+    const s = document.createElement('script');
+    s.type = 'module';
+    s.defer = true;
+    s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+    s.dataset.cfBeacon = JSON.stringify({ token: cfToken });
+    document.head.appendChild(s);
+  }
+}
 captureInvite();
 initSession();
 // Installed apps (iPhone especially) often resume from memory without reloading, so the browser never checks for a

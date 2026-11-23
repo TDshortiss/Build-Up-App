@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type { Session as SbSession } from '@supabase/supabase-js';
+import { signupSource } from './attribution';
 import { appUrl, cloudEnabled, supabase } from './supabase';
 import { emptyState, getState, loadFor, mergeStates, migrate, onLocalChange, replaceState, unload } from './store';
 import type { AppState } from '../engine/types';
@@ -157,10 +158,14 @@ function friendly(msg: string): string {
   return msg;
 }
 
-export async function signUp(email: string, password: string): Promise<{ error: string | null; needsConfirm: boolean }> {
+export async function signUp(email: string, password: string, heard?: string): Promise<{ error: string | null; needsConfirm: boolean }> {
   if (!supabase) return { error: 'Accounts are not set up yet.', needsConfirm: false };
+  // Sent with the sign-up; the handle_new_user trigger records them on the new account.
+  // invite: a friend's invite code. src: which link brought them. heard: their answer to "How did you hear about us?"
   const invite = pendingInvite();
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: appUrl(), data: invite ? { invite } : undefined } });
+  const src = signupSource();
+  const meta = { ...(invite ? { invite } : {}), ...(src ? { src } : {}), ...(heard ? { heard } : {}) };
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: appUrl(), data: meta } });
   if (error) return { error: friendly(error.message), needsConfirm: false };
   clearInvite();
   return { error: null, needsConfirm: !data.session };
