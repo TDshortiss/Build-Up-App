@@ -8,6 +8,7 @@ import { dateOf } from '../engine/generate';
 import { currentStage, rehabItems, resolveItems, tierOf, type Dropped, type Resolved } from '../engine/resolve';
 import type { AppState, DayLog, Exercise, Plan, PlanDay } from '../engine/types';
 import { update, updateLog } from '../state/store';
+import { successHaptic, tapHaptic } from '../state/native';
 
 export const PHASE_COLORS = ['var(--p1)', 'var(--p2)', 'var(--p3)', 'var(--p4)'];
 
@@ -152,7 +153,7 @@ function Session({ state, day, date, beforeStart, onRehab }: { state: AppState; 
     );
   }
 
-  const tick = (key: string) => updateLog(date, l => ({ ...l, done: { ...l.done, [key]: !l.done[key] } }));
+  const tick = (key: string) => { if (!log.done[key]) void tapHaptic(); updateLog(date, l => ({ ...l, done: { ...l.done, [key]: !l.done[key] } })); };
   const setWeight = (exId: string, v: string) => {
     const n = v === '' ? NaN : Number(v);
     updateLog(date, l => {
@@ -214,7 +215,7 @@ function Session({ state, day, date, beforeStart, onRehab }: { state: AppState; 
         </div>
         {complete
           ? <div className="row"><span className="pill green">Completed {fmtShort(log.completedAt!.slice(0, 10))}</span><button className="linkbtn warn" onClick={() => updateLog(date, l => ({ ...l, completedAt: undefined }))}>Mark as not done</button></div>
-          : <button className="btn done block" onClick={() => updateLog(date, l => ({ ...l, completedAt: new Date().toISOString(), done: Object.fromEntries(allKeys.map(k => [k, l.done[k] ?? true])) }))}>Complete session</button>}
+          : <button className="btn done block" onClick={() => { void successHaptic(); updateLog(date, l => ({ ...l, completedAt: new Date().toISOString(), done: Object.fromEntries(allKeys.map(k => [k, l.done[k] ?? true])) })); }}>Complete session</button>}
       </div>
 
       {info && <ExerciseInfo ex={info} onClose={() => setInfo(null)} />}

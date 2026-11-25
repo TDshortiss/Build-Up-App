@@ -8,6 +8,7 @@ import { SPORT } from '../data/sports';
 import { DAY_SHORT, fmtShort } from '../engine/dates';
 import type { AppState, Units } from '../engine/types';
 import { deleteAccount, signOut, type Session } from '../state/session';
+import { isNative, nativeShareFile, setReminder, useReminder } from '../state/native';
 import { update } from '../state/store';
 import { cloudEnabled } from '../state/supabase';
 
@@ -24,9 +25,14 @@ export function Me({ state, session, progress, onEdit, onRank, onStreak, install
   const info = levelInfo(progress.xp);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const native = isNative();
+  const reminder = useReminder();
+  const [remindErr, setRemindErr] = useState<string | null>(null);
+  const remind = async (time: string | null) => setRemindErr(await setReminder(time));
 
-  const exportData = () => {
+  const exportData = async () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    if (await nativeShareFile(blob, `build-up-${new Date().toISOString().slice(0, 10)}.json`)) return;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `build-up-${new Date().toISOString().slice(0, 10)}.json`;
@@ -95,6 +101,13 @@ export function Me({ state, session, progress, onEdit, onRank, onStreak, install
           <div className="row"><span style={{ flex: 1 }}>Weights</span>
             <Seg<Units> label="Weight units" value={p.units} options={[['lb', 'lb'], ['kg', 'kg']]} onChange={units => update(s => ({ ...s, profile: { ...s.profile!, units } }))} />
           </div>
+          {native && (<>
+            <div className="row"><span style={{ flex: 1 }}>Daily reminder</span>
+              {reminder && <input className="input" type="time" aria-label="Reminder time" style={{ width: 'auto' }} value={reminder} onChange={e => e.target.value && void remind(e.target.value)} />}
+              <Seg<'on' | 'off'> label="Daily reminder" value={reminder ? 'on' : 'off'} options={[['off', 'Off'], ['on', 'On']]} onChange={v => void remind(v === 'on' ? (reminder ?? '17:00') : null)} />
+            </div>
+            {remindErr && <p className="err">{remindErr}</p>}
+          </>)}
           {Object.keys(state.swaps).length > 0 && (
             <div className="row"><span style={{ flex: 1 }}>{Object.keys(state.swaps).length} exercise swaps</span>
               <button className="linkbtn" onClick={() => update(s => ({ ...s, swaps: {} }))}>Reset swaps</button>
@@ -103,7 +116,8 @@ export function Me({ state, session, progress, onEdit, onRank, onStreak, install
           {install.available && <button className="btn dark" onClick={onInstall}>{install.can ? 'Install the app' : 'Add to Home Screen'}</button>}
         </section>
 
-        <section className="card pro">
+        {/* Apple doesn't allow "coming soon" features or paid plans sold outside the App Store, so the app hides this until Pro uses In-App Purchase. */}
+        {!native && <section className="card pro">
           <div className="row"><h3 style={{ flex: 1 }}>{session.tier === 'pro' ? 'Pro' : 'Free plan'}</h3><span className="pill">{session.tier === 'pro' ? 'Active' : 'Pro coming soon'}</span></div>
           <p style={{ fontSize: 15 }}>Everything you're using now stays free: custom plans, your own workouts, rehab, progress charts, ranks and sync.</p>
           {session.tier !== 'pro' && (<>
@@ -114,7 +128,7 @@ export function Me({ state, session, progress, onEdit, onRank, onStreak, install
               <li>More sports and injuries, and multiple plans at once</li>
             </ul>
           </>)}
-        </section>
+        </section>}
 
         <section className="card">
           <h3>Account</h3>

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { isNative } from '../state/native';
 import { Sheet } from './ui';
 
 /*
@@ -32,7 +33,9 @@ function detect(): Platform {
 }
 
 export function isStandalone(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches
+  // The App Store app is already installed.
+  return isNative()
+    || window.matchMedia('(display-mode: standalone)').matches
     || window.matchMedia('(display-mode: fullscreen)').matches
     || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }

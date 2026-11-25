@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { REFERRAL } from '../engine/progress';
 import { fmtShort } from '../engine/dates';
 import type { Referrals } from '../engine/types';
+import { nativeShareLink } from '../state/native';
 import { inviteUrl } from '../state/referrals';
 import { Sheet } from './ui';
 
@@ -28,6 +29,7 @@ export function InviteSheet({ referrals, signedIn, onClose }: { referrals: Refer
 
   const share = async () => {
     if (!link) return;
+    if (await nativeShareLink({ title: 'Build Up', text, url: link })) return;
     if (navigator.share) {
       try { await navigator.share({ title: 'Build Up', text, url: link }); return; } catch (e) { if ((e as Error).name === 'AbortError') return; }
     }

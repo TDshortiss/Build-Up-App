@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { levelName, rankOf, type Progress } from '../engine/progress';
+import { isNative, nativeShareFile } from '../state/native';
 import { inviteUrl, SITE_URL } from '../state/referrals';
 import { Sheet } from './ui';
 import { Flame, RankBadge } from './visuals';
@@ -188,7 +189,8 @@ export function ShareSheet({ data, onClose }: { data: CardData; onClose: () => v
   const [url, setUrl] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const file = blob ? new File([blob], `build-up-${data.kind}.png`, { type: 'image/png' }) : null;
-  const canShareFile = !!file && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
+  const native = isNative();
+  const canShareFile = native || (!!file && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] }));
 
   useEffect(() => {
     let live = true;
@@ -212,6 +214,8 @@ export function ShareSheet({ data, onClose }: { data: CardData; onClose: () => v
   };
   const share = async () => {
     if (!file) return;
+    // In the iPhone app the share sheet also has Save Image, so one button does both.
+    if (blob && await nativeShareFile(blob, file.name, shareText(data))) return;
     try {
       await navigator.share({ files: [file], text: shareText(data) });
     } catch (e) {
@@ -228,8 +232,8 @@ export function ShareSheet({ data, onClose }: { data: CardData; onClose: () => v
         {url ? <img src={url} alt={shareText(data)} /> : <div className="share-loading">Making your card…</div>}
       </div>
       <div className="row">
-        {canShareFile && <button className="btn" style={{ flex: 1 }} onClick={share} disabled={!blob}>Share</button>}
-        <button className={`btn${canShareFile ? ' ghost' : ''}`} style={{ flex: 1 }} onClick={save} disabled={!url}>Save image</button>
+        {canShareFile && <button className="btn" style={{ flex: 1 }} onClick={share} disabled={!blob}>{native ? 'Share or save' : 'Share'}</button>}
+        {!native && <button className={`btn${canShareFile ? ' ghost' : ''}`} style={{ flex: 1 }} onClick={save} disabled={!url}>Save image</button>}
       </div>
       <p className="fine">{msg ?? 'Sized for Instagram and TikTok Stories.'}{data.inviteCode ? ' Your invite code is on the card, so friends who join get you bonus XP.' : ''}</p>
     </Sheet>
