@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Chevron, Effort } from '../components/ui';
 import { pendingInvite } from '../state/referrals';
+import { isNative } from '../state/native';
 import { sendReset, setNewPassword, signIn, signUp } from '../state/session';
 
 export function Welcome({ onStart }: { onStart: (mode: 'signup' | 'signin') => void }) {
@@ -79,8 +80,8 @@ export function AuthScreen({ initial, onBack }: { initial: Mode; onBack?: () => 
       <div className="auth">
         <h2>Check your email</h2>
         <p>{sent === 'confirm'
-          ? <>We sent a confirmation link to <b>{email}</b>. Open it on this device to finish creating your account.</>
-          : <>If an account exists for <b>{email}</b>, a link to reset your password is on its way.</>}</p>
+          ? <>We sent a confirmation link to <b>{email}</b>. {isNative() ? 'Tap the link in it, then come back here and sign in.' : 'Open it on this device to finish creating your account.'}</>
+          : <>If an account exists for <b>{email}</b>, a link to reset your password is on its way.{isNative() ? ' Choose your new password on the page it opens, then come back here and sign in.' : ''}</>}</p>
         <p className="fine">Nothing there after a minute? Check spam, or try again.</p>
         <button className="btn ghost" onClick={() => { setSent(null); setMode('signin'); }}>Back to sign in</button>
       </div>

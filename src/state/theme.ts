@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { syncStatusBar } from './native';
 
 /* Light / dark / follow the phone. Saved per device, applied before the app renders. */
 
@@ -22,6 +23,7 @@ export function applyTheme(t: Theme = current) {
     const dark = t === 'system' ? darkMeta : t === 'dark';
     m.setAttribute('content', dark ? '#0E151B' : '#F2F4F5');
   });
+  void syncStatusBar(t === 'system' ? !!window.matchMedia?.('(prefers-color-scheme: dark)').matches : t === 'dark');
 }
 
 export function setTheme(t: Theme) {

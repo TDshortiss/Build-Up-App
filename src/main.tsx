@@ -4,14 +4,19 @@ import { registerSW } from 'virtual:pwa-register';
 import { App } from './App';
 import { captureArrival } from './state/attribution';
 import { captureInvite } from './state/referrals';
+import { initNative, isNative } from './state/native';
 import { initSession } from './state/session';
 import { applyTheme } from './state/theme';
 import './styles.css';
 
 const PREVIEW = import.meta.env.VITE_PREVIEW === '1';
+// The iPhone app ships its files inside the app and updates through the App Store, so it skips the website's
+// offline worker and web analytics.
+const NATIVE = isNative();
 
 applyTheme();
-if (!PREVIEW) {
+void initNative();
+if (!PREVIEW && !NATIVE) {
   captureArrival();
   // Cloudflare Web Analytics: cookieless visit counts, top pages, referring sites, countries and devices.
   // The token is public; it comes from the Cloudflare dashboard and is set as the VITE_CF_ANALYTICS_TOKEN repo variable.
@@ -30,7 +35,7 @@ initSession();
 // Installed apps (iPhone especially) often resume from memory without reloading, so the browser never checks for a
 // new version. Check whenever the app comes back to the foreground, and hourly while it stays open. With autoUpdate,
 // a new version installs and the page reloads itself.
-if (!PREVIEW) {
+if (!PREVIEW && !NATIVE) {
   registerSW({
     immediate: true,
     onRegisteredSW(_url, reg) {
