@@ -18,6 +18,9 @@ export function isNative(): boolean {
 export async function initNative() {
   if (!isNative()) return;
   document.documentElement.classList.add('native');
+  // Native apps don't zoom. Without this, iOS zooms in when a text box is tapped and leaves the page zoomed.
+  document.querySelector('meta[name="viewport"]')
+    ?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
   const { SplashScreen } = await import('@capacitor/splash-screen');
   void SplashScreen.hide().catch(() => {});
   void rescheduleReminder();
