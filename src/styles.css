@@ -250,7 +250,8 @@ ol.exs { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--li
 .ex-sub { color: var(--muted); font-size: 14px; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 2px 12px; }
 .tag-swap { font-size: 12px; font-weight: 600; color: var(--blue); border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; white-space: nowrap; }
 .wt { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); font-family: var(--mono); }
-.wt input { width: 76px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 15px; }
+/* Text boxes stay at 16px or larger: iPhone zooms the page in on anything smaller when you tap into it. */
+.wt input { width: 76px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 16px; }
 .wt input.is-set { border-color: var(--accent); }
 .ex-actions { display: flex; gap: 14px; margin-top: 6px; font-size: 14px; }
 .ex-actions button { border: 0; background: none; padding: 0; color: var(--muted); font-weight: 600; }
@@ -410,7 +411,7 @@ button.card:active { transform: scale(.985); }
 .quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
 .quick-w { text-align: left; border: 1px solid color-mix(in srgb, var(--tc-ink) 25%, transparent); background: color-mix(in srgb, var(--tc-ink) 8%, transparent); color: inherit; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; }
 .quick-w span { font-size: 13px; opacity: .75; }
-.select { width: auto; padding: 6px 10px; font-size: 15px; max-width: 60%; }
+.select { width: auto; padding: 6px 10px; font-size: 16px; max-width: 60%; }
 
 /* Calendar */
 .cal-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -533,7 +534,7 @@ button.card:active { transform: scale(.985); }
 .edit-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .edit-list li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
 .mini { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
-.mini input { width: 52px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 15px; }
+.mini input { width: 52px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 16px; }
 .edit-actions { display: flex; flex-direction: column; gap: 2px; }
 .edit-actions button { border: 0; background: var(--sunk); width: 30px; height: 26px; border-radius: 6px; display: grid; place-items: center; font-size: 14px; color: var(--muted); }
 .edit-actions button:disabled { opacity: .35; }
